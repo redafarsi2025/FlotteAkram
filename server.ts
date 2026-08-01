@@ -3,30 +3,65 @@ import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 
+// Simple in-memory rate limiter for translation endpoint
+const requestCounts = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 30;
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const record = requestCounts.get(ip);
+  if (!record || now > record.resetTime) {
+    requestCounts.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+    return false;
+  }
+  record.count += 1;
+  return record.count > MAX_REQUESTS_PER_WINDOW;
+}
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json());
-
-  // Server-side Gemini AI client initialization
-  const ai = new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY,
-    httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build',
-      },
-    },
-  });
+  app.use(express.json({ limit: '1mb' }));
 
   // API Endpoint: Server-side Gemini Translation
   app.post('/api/translate', async (req, res) => {
     try {
+      const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
+      if (isRateLimited(clientIp)) {
+        return res.status(429).json({ error: 'Rate limit exceeded. Please try again in a minute.' });
+      }
+
       const { sourceText, sourceLang, targetLang, key, namespace, context, glossaryTerms } = req.body;
 
-      if (!sourceText || !targetLang) {
-        return res.status(400).json({ error: 'Missing sourceText or targetLang parameter' });
+      if (!sourceText || typeof sourceText !== 'string' || !targetLang) {
+        return res.status(400).json({ error: 'Missing or invalid sourceText or targetLang parameter' });
       }
+
+      if (sourceText.length > 5000) {
+        return res.status(400).json({ error: 'sourceText exceeds maximum length of 5000 characters' });
+      }
+
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        // Fallback gracefully if API key is missing
+        return res.json({
+          translatedText: sourceText,
+          confidenceScore: 0.5,
+          glossaryTermsPreserved: [],
+          status: 'Fallback (Missing GEMINI_API_KEY)',
+        });
+      }
+
+      const ai = new GoogleGenAI({
+        apiKey,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          },
+        },
+      });
 
       const glossaryRules = Array.isArray(glossaryTerms) && glossaryTerms.length > 0
         ? `Preserve the following mandatory Business Glossary terms:\n` +
@@ -46,7 +81,7 @@ Text to translate:
 "${sourceText}"`;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-3.6-flash',
+        model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
           systemInstruction:

@@ -650,8 +650,9 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
         // Repair cost = sum of required part cost + standard labor ($140/hr * 10 hrs = $1400)
         let partsCost = 450;
-        if (fault.required_part_id) {
-          const p = inventory.find((item) => item.id === fault.required_part_id);
+        const reqPartId = (fault as any).required_part_id;
+        if (reqPartId) {
+          const p = inventory.find((item) => item.id === reqPartId);
           if (p) partsCost = p.unit_cost;
         }
         const repairCost = partsCost + 1400; // [Calculated]

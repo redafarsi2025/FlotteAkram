@@ -91,7 +91,7 @@ export async function fetchInventory(bypassCache: boolean = false): Promise<Inve
   if (bypassCache) clearFleetCache('inventory');
   return fetchWithCache('inventory', async () => {
     try {
-      const { data, error } = await supabase.from('inventory').select('*');
+      const { data, error } = await supabase.from('inventory_items').select('*');
       if (error || !data || data.length === 0) {
         return INITIAL_INVENTORY;
       }
@@ -123,7 +123,7 @@ export async function fetchIncidents(bypassCache: boolean = false): Promise<Inci
   if (bypassCache) clearFleetCache('incidents');
   return fetchWithCache('incidents', async () => {
     try {
-      const { data, error } = await supabase.from('incidents').select('*');
+      const { data, error } = await supabase.from('driver_incidents').select('*');
       if (error || !data || data.length === 0) {
         return INITIAL_INCIDENTS;
       }
@@ -155,7 +155,7 @@ export async function fetchAlerts(bypassCache: boolean = false): Promise<FleetAl
   if (bypassCache) clearFleetCache('alerts');
   return fetchWithCache('alerts', async () => {
     try {
-      const { data, error } = await supabase.from('alerts').select('*');
+      const { data, error } = await supabase.from('fleet_alerts').select('*');
       if (error || !data || data.length === 0) {
         return INITIAL_ALERTS;
       }
@@ -608,15 +608,15 @@ export async function syncLogOBDFaultToSupabase(
   }
 ): Promise<boolean> {
   try {
-    const { error } = await supabase.from('fault_codes').insert([
+    const { error } = await supabase.from('fleet_alerts').insert([
       {
+        rule_id: 'R1',
+        title: `OBD Fault: ${fault.code} on Vehicle ${vehicleId}`,
+        description: `${fault.name} - ${fault.required_intervention}`,
+        severity: fault.severity === 'Critical' ? 'critical' : 'warning',
         vehicle_id: vehicleId,
-        code: fault.code,
-        name: fault.name,
-        severity: fault.severity,
-        required_part_id: fault.required_part_id,
-        required_intervention: fault.required_intervention,
-        logged_date: new Date().toISOString().split('T')[0],
+        part_id: fault.required_part_id,
+        read: false,
       },
     ]);
     if (error) {
@@ -653,3 +653,21 @@ export async function syncCreateWorkOrderToSupabase(
     return null;
   }
 }
+
+export async function syncSubmitDriverIncidentToSupabase(
+  incident: Omit<Incident, 'id'>
+): Promise<boolean> {
+  try {
+    const { error } = await supabase.from('driver_incidents').insert([incident]);
+    if (error) {
+      console.warn('Sync submitDriverIncident error:', error.message);
+      return false;
+    }
+    clearFleetCache('incidents');
+    return true;
+  } catch (err) {
+    console.warn('Sync submitDriverIncident exception:', err);
+    return false;
+  }
+}
+

@@ -173,7 +173,7 @@ export const TenantConfig: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <KPIBadge label="Configured" type="Configured" />
+            <KPIBadge type="Configured" />
             <span className="text-xs font-semibold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
               {t('tenant.header_tag', {}, 'Tenant & Society Management Engine')}
             </span>
