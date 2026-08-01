@@ -130,7 +130,7 @@ export const TranslationCenter: React.FC = () => {
     setIsTranslatingNs(true);
     try {
       const count = await aiTranslateNamespaceKeys(selectedNamespace, selectedLang);
-      alert(`Successfully translated ${count} keys in namespace '${selectedNamespace}' to ${selectedLang.toUpperCase()} using Gemini AI!`);
+      alert(`Successfully translated ${count} keys in namespace '${selectedNamespace}' to ${selectedLang.toUpperCase()} using the Free Local Translation Engine!`);
     } finally {
       setIsTranslatingNs(false);
     }
@@ -197,7 +197,7 @@ export const TranslationCenter: React.FC = () => {
             Multilingual Decision & Localization Engine
           </h1>
           <p className="text-xs lg:text-sm text-indigo-200/90 max-w-3xl">
-            Centralized translation management, Gemini AI context-aware translation, Business Glossary enforcement, Translation Memory matching, and full RTL layout support for French, Arabic & English.
+            Centralized translation management, Free Technical Local Translation (with zero API costs), Business Glossary enforcement, Translation Memory matching, and full RTL layout support for French, Arabic & English.
           </p>
         </div>
 
@@ -409,6 +409,21 @@ export const TranslationCenter: React.FC = () => {
       {/* TAB 2: TRANSLATION EDITOR & AI */}
       {activeTab === 'editor' && (
         <div className="space-y-4">
+          {/* Free Local Engine Status Banner */}
+          <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4 text-emerald-900 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+              <Zap className="h-5 w-5" />
+            </div>
+            <div className="space-y-0.5">
+              <h4 className="text-xs font-bold text-emerald-800 uppercase tracking-wide flex items-center gap-1.5">
+                Système Alternatif Actif : Traduction 100% Gratuite & Locale
+              </h4>
+              <p className="text-xs text-emerald-700/90 leading-normal">
+                Nous avons basculé du service payant Gemini Cloud vers le <strong>moteur de traduction NextTransit Technical Local Engine</strong>. Vos traductions sont désormais instantanées, sécurisées, s'exécutent entièrement côté client/serveur hors ligne, et n'engendrent aucun coût d'API tout en respectant strictement votre glossaire métier et la mémoire de traduction.
+              </p>
+            </div>
+          </div>
+
           {/* Controls & Filter Bar */}
           <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
             {/* Search input */}

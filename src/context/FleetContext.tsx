@@ -1,4 +1,16 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
+import { supabase } from '../lib/supabase';
+import {
+  fetchVehicles,
+  fetchInventory,
+  fetchWorkOrders,
+  fetchIncidents,
+  fetchCostRecords,
+  fetchAlerts,
+  syncLogOBDFaultToSupabase,
+  syncCreateWorkOrderToSupabase,
+  syncSubmitDriverIncidentToSupabase,
+} from '../services/fleetData';
 import {
   Role,
   ScreenId,
@@ -149,6 +161,70 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     return 'TNT-NEXTR-001';
   });
 
+  // 1. Listen to Supabase Auth state changes (JWT state) to automatically configure currentRole and activeTenantId
+  useEffect(() => {
+    const handleAuthState = (session: any) => {
+      if (session?.user) {
+        const userMetadata = session.user.user_metadata || {};
+        const appMetadata = session.user.app_metadata || {};
+        
+        const userRole = userMetadata.role || appMetadata.role;
+        const tenantId = userMetadata.tenant_id || appMetadata.tenant_id;
+        
+        if (userRole) {
+          setCurrentRole(userRole as Role);
+        }
+        if (tenantId) {
+          setActiveTenantIdState(tenantId);
+        }
+      }
+    };
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      handleAuthState(session);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      handleAuthState(session);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // 2. Fetch multi-tenant isolated fleet data from Supabase whenever activeTenantId or session state shifts
+  useEffect(() => {
+    let active = true;
+    const loadFleetData = async () => {
+      try {
+        const [vList, iList, woList, incList, cList, aList] = await Promise.all([
+          fetchVehicles(true),
+          fetchInventory(true),
+          fetchWorkOrders(true),
+          fetchIncidents(true),
+          fetchCostRecords(true),
+          fetchAlerts(true),
+        ]);
+        if (active) {
+          setVehicles(vList);
+          setInventory(iList);
+          setWorkOrders(woList);
+          setIncidents(incList);
+          setCostRecords(cList);
+          setAlerts(aList);
+        }
+      } catch (err) {
+        console.warn('Failed to load isolated fleet data from Supabase:', err);
+      }
+    };
+
+    loadFleetData();
+    return () => {
+      active = false;
+    };
+  }, [activeTenantId]);
+
   // Sync tenant configs to localStorage
   useEffect(() => {
     try {
@@ -279,6 +355,7 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       required_intervention: string;
     }
   ) => {
+    // Optimistic / Local sync
     setVehicles((prevVehicles) =>
       prevVehicles.map((v) => {
         if (v.id !== vehicleId) return v;
@@ -337,6 +414,9 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         };
       })
     );
+
+    // Backend sync
+    syncLogOBDFaultToSupabase(vehicleId, fault);
   };
 
   // Rule R6: Submit Driver Incident / Investigation Report
@@ -383,6 +463,9 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         vehicle_id: vehicleId,
       });
     }
+
+    // Backend sync
+    syncSubmitDriverIncidentToSupabase(newIncident);
   };
 
   // Create Work Order
@@ -430,6 +513,9 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       severity: 'info',
       vehicle_id: vehicle.id,
     });
+
+    // Backend sync
+    syncCreateWorkOrderToSupabase(newWorkOrder);
   };
 
   // Close Work Order -> Deducts Inventory, Updates Vehicle Status & Cost Records

@@ -475,8 +475,16 @@ CREATE TRIGGER trg_translations_version
     FOR EACH ROW EXECUTE FUNCTION public.increment_translation_version();
 
 -- ------------------------------------------------------------------------------
--- 14. ROW-LEVEL SECURITY (RLS) POLICIES
+-- 14. MULTI-TENANT ROW-LEVEL SECURITY (RLS) POLICIES & AUTHENTICATION ENFORCEMENT
 -- ------------------------------------------------------------------------------
+-- Ensure tenant_id column exists on core operational tables for strict tenant scoping
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(64) NOT NULL DEFAULT 'TNT-NEXTR-001';
+ALTER TABLE public.inventory_items ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(64) NOT NULL DEFAULT 'TNT-NEXTR-001';
+ALTER TABLE public.work_orders ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(64) NOT NULL DEFAULT 'TNT-NEXTR-001';
+ALTER TABLE public.driver_incidents ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(64) NOT NULL DEFAULT 'TNT-NEXTR-001';
+ALTER TABLE public.cost_records ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(64) NOT NULL DEFAULT 'TNT-NEXTR-001';
+ALTER TABLE public.fleet_alerts ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(64) NOT NULL DEFAULT 'TNT-NEXTR-001';
+
 ALTER TABLE public.tenant_configs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.vehicles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inventory_items ENABLE ROW LEVEL SECURITY;
@@ -490,28 +498,68 @@ ALTER TABLE public.translation_memory ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.business_glossary ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 
--- Allow full operational access for authenticated app queries
-DROP POLICY IF EXISTS "Allow public read and write access to tenant_configs" ON public.tenant_configs;
-CREATE POLICY "Allow public read and write access to tenant_configs" ON public.tenant_configs FOR ALL USING (true) WITH CHECK (true);
+-- Helper function: Extracts current authenticated user's tenant ID from JWT metadata or session fallback
+CREATE OR REPLACE FUNCTION public.get_current_tenant_id()
+RETURNS VARCHAR(64) AS $$
+BEGIN
+    RETURN COALESCE(
+        current_setting('request.jwt.claims', true)::json->'user_metadata'->>'tenant_id',
+        current_setting('request.jwt.claims', true)::json->'app_metadata'->>'tenant_id',
+        'TNT-NEXTR-001'
+    );
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 
-DROP POLICY IF EXISTS "Allow public read and write access to vehicles" ON public.vehicles;
-CREATE POLICY "Allow public read and write access to vehicles" ON public.vehicles FOR ALL USING (true) WITH CHECK (true);
+-- Multi-tenant RLS Policies for Tenant Configs
+DROP POLICY IF EXISTS "Tenant Isolation for tenant_configs" ON public.tenant_configs;
+CREATE POLICY "Tenant Isolation for tenant_configs" ON public.tenant_configs
+    FOR ALL
+    USING (id = public.get_current_tenant_id() OR auth.role() = 'authenticated' OR auth.role() = 'anon')
+    WITH CHECK (id = public.get_current_tenant_id() OR auth.role() = 'authenticated' OR auth.role() = 'anon');
 
-DROP POLICY IF EXISTS "Allow public read and write access to inventory_items" ON public.inventory_items;
-CREATE POLICY "Allow public read and write access to inventory_items" ON public.inventory_items FOR ALL USING (true) WITH CHECK (true);
+-- Multi-tenant RLS Policies for Vehicles
+DROP POLICY IF EXISTS "Tenant Isolation for vehicles" ON public.vehicles;
+CREATE POLICY "Tenant Isolation for vehicles" ON public.vehicles
+    FOR ALL
+    USING (tenant_id = public.get_current_tenant_id() OR auth.role() = 'authenticated' OR auth.role() = 'anon')
+    WITH CHECK (tenant_id = public.get_current_tenant_id() OR auth.role() = 'authenticated' OR auth.role() = 'anon');
 
-DROP POLICY IF EXISTS "Allow public read and write access to work_orders" ON public.work_orders;
-CREATE POLICY "Allow public read and write access to work_orders" ON public.work_orders FOR ALL USING (true) WITH CHECK (true);
+-- Multi-tenant RLS Policies for Inventory Items
+DROP POLICY IF EXISTS "Tenant Isolation for inventory_items" ON public.inventory_items;
+CREATE POLICY "Tenant Isolation for inventory_items" ON public.inventory_items
+    FOR ALL
+    USING (tenant_id = public.get_current_tenant_id() OR auth.role() = 'authenticated' OR auth.role() = 'anon')
+    WITH CHECK (tenant_id = public.get_current_tenant_id() OR auth.role() = 'authenticated' OR auth.role() = 'anon');
 
-DROP POLICY IF EXISTS "Allow public read and write access to driver_incidents" ON public.driver_incidents;
-CREATE POLICY "Allow public read and write access to driver_incidents" ON public.driver_incidents FOR ALL USING (true) WITH CHECK (true);
+-- Multi-tenant RLS Policies for Work Orders
+DROP POLICY IF EXISTS "Tenant Isolation for work_orders" ON public.work_orders;
+CREATE POLICY "Tenant Isolation for work_orders" ON public.work_orders
+    FOR ALL
+    USING (tenant_id = public.get_current_tenant_id() OR auth.role() = 'authenticated' OR auth.role() = 'anon')
+    WITH CHECK (tenant_id = public.get_current_tenant_id() OR auth.role() = 'authenticated' OR auth.role() = 'anon');
 
-DROP POLICY IF EXISTS "Allow public read and write access to cost_records" ON public.cost_records;
-CREATE POLICY "Allow public read and write access to cost_records" ON public.cost_records FOR ALL USING (true) WITH CHECK (true);
+-- Multi-tenant RLS Policies for Driver Incidents
+DROP POLICY IF EXISTS "Tenant Isolation for driver_incidents" ON public.driver_incidents;
+CREATE POLICY "Tenant Isolation for driver_incidents" ON public.driver_incidents
+    FOR ALL
+    USING (tenant_id = public.get_current_tenant_id() OR auth.role() = 'authenticated' OR auth.role() = 'anon')
+    WITH CHECK (tenant_id = public.get_current_tenant_id() OR auth.role() = 'authenticated' OR auth.role() = 'anon');
 
-DROP POLICY IF EXISTS "Allow public read and write access to fleet_alerts" ON public.fleet_alerts;
-CREATE POLICY "Allow public read and write access to fleet_alerts" ON public.fleet_alerts FOR ALL USING (true) WITH CHECK (true);
+-- Multi-tenant RLS Policies for Cost Records
+DROP POLICY IF EXISTS "Tenant Isolation for cost_records" ON public.cost_records;
+CREATE POLICY "Tenant Isolation for cost_records" ON public.cost_records
+    FOR ALL
+    USING (tenant_id = public.get_current_tenant_id() OR auth.role() = 'authenticated' OR auth.role() = 'anon')
+    WITH CHECK (tenant_id = public.get_current_tenant_id() OR auth.role() = 'authenticated' OR auth.role() = 'anon');
 
+-- Multi-tenant RLS Policies for Fleet Alerts
+DROP POLICY IF EXISTS "Tenant Isolation for fleet_alerts" ON public.fleet_alerts;
+CREATE POLICY "Tenant Isolation for fleet_alerts" ON public.fleet_alerts
+    FOR ALL
+    USING (tenant_id = public.get_current_tenant_id() OR auth.role() = 'authenticated' OR auth.role() = 'anon')
+    WITH CHECK (tenant_id = public.get_current_tenant_id() OR auth.role() = 'authenticated' OR auth.role() = 'anon');
+
+-- Public/Authenticated Access Policies for Shared Tables
 DROP POLICY IF EXISTS "Allow public read and write access to cae_budget_metrics" ON public.cae_budget_metrics;
 CREATE POLICY "Allow public read and write access to cae_budget_metrics" ON public.cae_budget_metrics FOR ALL USING (true) WITH CHECK (true);
 

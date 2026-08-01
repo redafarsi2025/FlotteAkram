@@ -16,10 +16,12 @@ import {
   UserCheck,
   Truck,
   Users,
+  KeyRound,
 } from 'lucide-react';
 import { AlertFeedModal } from './AlertFeedModal';
 import { GoldenPathModal } from './GoldenPathModal';
 import { RoleSelectorModal } from './RoleSelectorModal';
+import { AuthModal } from './AuthModal';
 import { LanguageSelector } from '../localization/LanguageSelector';
 
 export const TopBar: React.FC = () => {
@@ -28,6 +30,7 @@ export const TopBar: React.FC = () => {
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [showGoldenPathModal, setShowGoldenPathModal] = useState(false);
   const [showRoleMenu, setShowRoleMenu] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const activeRoleInfo = ROLES_CONFIG.find((r) => r.id === currentRole) || ROLES_CONFIG[0];
   const unreadAlertsCount = alerts.filter((a) => !a.read).length;
@@ -100,6 +103,16 @@ export const TopBar: React.FC = () => {
           >
             <RotateCcw className="h-3.5 w-3.5 text-slate-500" />
             <span>{t('topbar.reset_data', {}, 'Reset Data')}</span>
+          </button>
+
+          {/* Auth & Security Modal Toggle */}
+          <button
+            onClick={() => setShowAuthModal(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition cursor-pointer"
+            title="Manage Real Supabase Auth Session & Tenant RLS"
+          >
+            <KeyRound className="h-3.5 w-3.5 text-indigo-600" />
+            <span className="hidden sm:inline">Auth & RLS</span>
           </button>
 
           {/* Alert count button */}
@@ -219,6 +232,9 @@ export const TopBar: React.FC = () => {
       )}
       {isRoleSelectorOpen && (
         <RoleSelectorModal onClose={() => setIsRoleSelectorOpen(false)} />
+      )}
+      {showAuthModal && (
+        <AuthModal onClose={() => setShowAuthModal(false)} />
       )}
     </>
   );

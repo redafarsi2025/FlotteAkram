@@ -51,6 +51,25 @@ export function clearFleetCache(key?: string): void {
 }
 
 /**
+ * Helper to dynamically determine the current tenant context from active Supabase Auth session or localStorage fallback
+ */
+export async function getCurrentTenantId(): Promise<string> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const userMetadataTenant = session?.user?.user_metadata?.tenant_id || session?.user?.app_metadata?.tenant_id;
+    if (userMetadataTenant) return userMetadataTenant;
+  } catch (err) {
+    console.warn('Error fetching Supabase session for tenant isolation:', err);
+  }
+  
+  try {
+    const stored = localStorage.getItem('nexttransit_active_tenant_id');
+    if (stored) return stored;
+  } catch (e) {}
+  return 'TNT-NEXTR-001';
+}
+
+/**
  * Generic wrapper to retrieve data from local memoized cache if fresh,
  * or execute the underlying fetcher and update cache.
  */
@@ -72,97 +91,127 @@ async function fetchWithCache<T>(
 }
 
 export async function fetchVehicles(bypassCache: boolean = false): Promise<Vehicle[]> {
-  if (bypassCache) clearFleetCache('vehicles');
-  return fetchWithCache('vehicles', async () => {
+  const tenantId = await getCurrentTenantId();
+  const cacheKey = `vehicles_${tenantId}`;
+  if (bypassCache) clearFleetCache(cacheKey);
+  return fetchWithCache(cacheKey, async () => {
     try {
-      const { data, error } = await supabase.from('vehicles').select('*');
+      const { data, error } = await supabase
+        .from('vehicles')
+        .select('*')
+        .eq('tenant_id', tenantId);
       if (error || !data || data.length === 0) {
-        return INITIAL_VEHICLES;
+        return INITIAL_VEHICLES.map((v) => ({ ...v, tenant_id: tenantId }));
       }
       return data as Vehicle[];
     } catch (err) {
       console.warn('Supabase fetchVehicles fallback to seed data:', err);
-      return INITIAL_VEHICLES;
+      return INITIAL_VEHICLES.map((v) => ({ ...v, tenant_id: tenantId }));
     }
   });
 }
 
 export async function fetchInventory(bypassCache: boolean = false): Promise<InventoryItem[]> {
-  if (bypassCache) clearFleetCache('inventory');
-  return fetchWithCache('inventory', async () => {
+  const tenantId = await getCurrentTenantId();
+  const cacheKey = `inventory_${tenantId}`;
+  if (bypassCache) clearFleetCache(cacheKey);
+  return fetchWithCache(cacheKey, async () => {
     try {
-      const { data, error } = await supabase.from('inventory_items').select('*');
+      const { data, error } = await supabase
+        .from('inventory_items')
+        .select('*')
+        .eq('tenant_id', tenantId);
       if (error || !data || data.length === 0) {
-        return INITIAL_INVENTORY;
+        return INITIAL_INVENTORY.map((item) => ({ ...item, tenant_id: tenantId }));
       }
       return data as InventoryItem[];
     } catch (err) {
       console.warn('Supabase fetchInventory fallback to seed data:', err);
-      return INITIAL_INVENTORY;
+      return INITIAL_INVENTORY.map((item) => ({ ...item, tenant_id: tenantId }));
     }
   });
 }
 
 export async function fetchWorkOrders(bypassCache: boolean = false): Promise<WorkOrder[]> {
-  if (bypassCache) clearFleetCache('work_orders');
-  return fetchWithCache('work_orders', async () => {
+  const tenantId = await getCurrentTenantId();
+  const cacheKey = `work_orders_${tenantId}`;
+  if (bypassCache) clearFleetCache(cacheKey);
+  return fetchWithCache(cacheKey, async () => {
     try {
-      const { data, error } = await supabase.from('work_orders').select('*');
+      const { data, error } = await supabase
+        .from('work_orders')
+        .select('*')
+        .eq('tenant_id', tenantId);
       if (error || !data || data.length === 0) {
-        return INITIAL_WORK_ORDERS;
+        return INITIAL_WORK_ORDERS.map((wo) => ({ ...wo, tenant_id: tenantId }));
       }
       return data as WorkOrder[];
     } catch (err) {
       console.warn('Supabase fetchWorkOrders fallback to seed data:', err);
-      return INITIAL_WORK_ORDERS;
+      return INITIAL_WORK_ORDERS.map((wo) => ({ ...wo, tenant_id: tenantId }));
     }
   });
 }
 
 export async function fetchIncidents(bypassCache: boolean = false): Promise<Incident[]> {
-  if (bypassCache) clearFleetCache('incidents');
-  return fetchWithCache('incidents', async () => {
+  const tenantId = await getCurrentTenantId();
+  const cacheKey = `incidents_${tenantId}`;
+  if (bypassCache) clearFleetCache(cacheKey);
+  return fetchWithCache(cacheKey, async () => {
     try {
-      const { data, error } = await supabase.from('driver_incidents').select('*');
+      const { data, error } = await supabase
+        .from('driver_incidents')
+        .select('*')
+        .eq('tenant_id', tenantId);
       if (error || !data || data.length === 0) {
-        return INITIAL_INCIDENTS;
+        return INITIAL_INCIDENTS.map((inc) => ({ ...inc, tenant_id: tenantId }));
       }
       return data as Incident[];
     } catch (err) {
       console.warn('Supabase fetchIncidents fallback to seed data:', err);
-      return INITIAL_INCIDENTS;
+      return INITIAL_INCIDENTS.map((inc) => ({ ...inc, tenant_id: tenantId }));
     }
   });
 }
 
 export async function fetchCostRecords(bypassCache: boolean = false): Promise<CostRecord[]> {
-  if (bypassCache) clearFleetCache('cost_records');
-  return fetchWithCache('cost_records', async () => {
+  const tenantId = await getCurrentTenantId();
+  const cacheKey = `cost_records_${tenantId}`;
+  if (bypassCache) clearFleetCache(cacheKey);
+  return fetchWithCache(cacheKey, async () => {
     try {
-      const { data, error } = await supabase.from('cost_records').select('*');
+      const { data, error } = await supabase
+        .from('cost_records')
+        .select('*')
+        .eq('tenant_id', tenantId);
       if (error || !data || data.length === 0) {
-        return INITIAL_COST_RECORDS;
+        return INITIAL_COST_RECORDS.map((c) => ({ ...c, tenant_id: tenantId }));
       }
       return data as CostRecord[];
     } catch (err) {
       console.warn('Supabase fetchCostRecords fallback to seed data:', err);
-      return INITIAL_COST_RECORDS;
+      return INITIAL_COST_RECORDS.map((c) => ({ ...c, tenant_id: tenantId }));
     }
   });
 }
 
 export async function fetchAlerts(bypassCache: boolean = false): Promise<FleetAlert[]> {
-  if (bypassCache) clearFleetCache('alerts');
-  return fetchWithCache('alerts', async () => {
+  const tenantId = await getCurrentTenantId();
+  const cacheKey = `alerts_${tenantId}`;
+  if (bypassCache) clearFleetCache(cacheKey);
+  return fetchWithCache(cacheKey, async () => {
     try {
-      const { data, error } = await supabase.from('fleet_alerts').select('*');
+      const { data, error } = await supabase
+        .from('fleet_alerts')
+        .select('*')
+        .eq('tenant_id', tenantId);
       if (error || !data || data.length === 0) {
-        return INITIAL_ALERTS;
+        return INITIAL_ALERTS.map((a) => ({ ...a, tenant_id: tenantId }));
       }
       return data as FleetAlert[];
     } catch (err) {
       console.warn('Supabase fetchAlerts fallback to seed data:', err);
-      return INITIAL_ALERTS;
+      return INITIAL_ALERTS.map((a) => ({ ...a, tenant_id: tenantId }));
     }
   });
 }
