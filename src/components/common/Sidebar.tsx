@@ -14,6 +14,7 @@ import {
   Truck,
   Smartphone,
   ShieldAlert,
+  Building2,
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
@@ -88,6 +89,12 @@ export const Sidebar: React.FC = () => {
       label: 'Driver Mobile View',
       icon: Truck,
       description: 'Status indicator & instant issue report',
+    },
+    {
+      id: 'TENANT_CONFIG',
+      label: 'Tenant & Society Config',
+      icon: Building2,
+      description: 'Society name, budget & money used settings',
     },
   ];
 

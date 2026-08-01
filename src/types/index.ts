@@ -26,7 +26,8 @@ export type ScreenId =
   | 'CAE_BUDGET_PRIORITIZATION'
   | 'INCIDENT_REPORTS'
   | 'MECHANIC_MOBILE_QUEUE'
-  | 'DRIVER_MOBILE_VIEW';
+  | 'DRIVER_MOBILE_VIEW'
+  | 'TENANT_CONFIG';
 
 export type PermissionLevel = 'full' | 'view' | 'none' | 'resolve' | 'parts_status' | 'assigned_only' | 'own_only' | 'submit';
 
@@ -176,3 +177,23 @@ export interface CAEItem {
 }
 
 export type KPILabelType = 'Calculated' | 'Statistical estimate' | 'Configured';
+
+export interface TenantConfig {
+  id: string; // Tenant ID e.g. "TNT-NEXTR-001"
+  societyName: string; // "NextTransit Fleet Operations Society Ltd."
+  currency: string; // "USD ($)"
+  currencySymbol: string; // "$"
+  allocatedBudget: number; // e.g. 450000
+  moneyUsed: number; // e.g. 382450
+  fiscalYear: string; // "FY2026"
+  operatingRegion: string; // "North America - Midwest Sector"
+  taxRegistrationId: string; // "TAX-9948201-NX"
+  costCenterCode: string; // "CC-FLEET-902"
+  defaultLaborRate: number; // 85
+  emergencyApprovalThreshold: number; // 5000
+  contactEmail: string; // "operations@nexttransit.com"
+  contactPhone: string; // "+1 (555) 019-2834"
+  billingAddress: string; // "100 Fleet Center Plaza, Suite 400, Chicago, IL"
+  autoSyncMoneyUsed: boolean; // Sync automatically with cost records sum
+  lastUpdated: string; // e.g. "2026-08-01"
+}

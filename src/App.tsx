@@ -15,6 +15,7 @@ import { CaeBudgetPrioritization } from './components/screens/CaeBudgetPrioritiz
 import { IncidentReports } from './components/screens/IncidentReports';
 import { MechanicMobileQueue } from './components/screens/MechanicMobileQueue';
 import { DriverMobileView } from './components/screens/DriverMobileView';
+import { TenantConfig } from './components/screens/TenantConfig';
 
 const MainAppContent: React.FC = () => {
   const { currentScreen, selectedVehicleId, setSelectedVehicleId } = useFleet();
@@ -41,6 +42,8 @@ const MainAppContent: React.FC = () => {
         return <MechanicMobileQueue />;
       case 'DRIVER_MOBILE_VIEW':
         return <DriverMobileView />;
+      case 'TENANT_CONFIG':
+        return <TenantConfig />;
       default:
         return <StrategicDashboard />;
     }

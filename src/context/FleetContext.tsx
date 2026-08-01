@@ -10,6 +10,7 @@ import {
   FleetAlert,
   CAEItem,
   VehicleClassification,
+  TenantConfig,
 } from '../types';
 import {
   INITIAL_VEHICLES,
@@ -18,6 +19,7 @@ import {
   INITIAL_INCIDENTS,
   INITIAL_COST_RECORDS,
   INITIAL_ALERTS,
+  INITIAL_TENANT_CONFIGS,
   RBAC_MATRIX,
   ROLES_CONFIG,
 } from '../data/seedData';
@@ -37,6 +39,14 @@ interface FleetContextType {
   isRoleSelectorOpen: boolean;
   goldenPathAStatus: { active: boolean; currentStep: number };
   goldenPathBStatus: { active: boolean; currentStep: number };
+
+  // Tenant Configuration State & Actions
+  tenantConfigs: TenantConfig[];
+  activeTenantId: string;
+  activeTenant: TenantConfig;
+  updateTenantConfig: (id: string, updated: Partial<TenantConfig>) => void;
+  setActiveTenantId: (id: string) => void;
+  addTenantConfig: (newTenant: Omit<TenantConfig, 'id' | 'lastUpdated'>) => string;
 
   // Actions
   changeRole: (role: Role) => void;
@@ -115,6 +125,94 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     Standard: 1.4,
   });
 
+  // Tenant Configuration State with LocalStorage Persistence
+  const [tenantConfigs, setTenantConfigs] = useState<TenantConfig[]>(() => {
+    try {
+      const stored = localStorage.getItem('nexttransit_tenant_configs');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.warn('Failed to load tenant configs from localStorage', e);
+    }
+    return INITIAL_TENANT_CONFIGS;
+  });
+
+  const [activeTenantId, setActiveTenantIdState] = useState<string>(() => {
+    try {
+      const stored = localStorage.getItem('nexttransit_active_tenant_id');
+      if (stored) return stored;
+    } catch (e) {
+      console.warn('Failed to load active tenant ID', e);
+    }
+    return 'TNT-NEXTR-001';
+  });
+
+  // Sync tenant configs to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('nexttransit_tenant_configs', JSON.stringify(tenantConfigs));
+    } catch (e) {
+      console.warn('Failed to persist tenant configs', e);
+    }
+  }, [tenantConfigs]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('nexttransit_active_tenant_id', activeTenantId);
+    } catch (e) {
+      console.warn('Failed to persist active tenant ID', e);
+    }
+  }, [activeTenantId]);
+
+  // Derived Active Tenant
+  const activeTenant = useMemo(() => {
+    const found = tenantConfigs.find((t) => t.id === activeTenantId) || tenantConfigs[0] || INITIAL_TENANT_CONFIGS[0];
+    
+    // If autoSyncMoneyUsed is enabled, derive moneyUsed from costRecords sum
+    if (found.autoSyncMoneyUsed && costRecords.length > 0) {
+      const totalCost = costRecords.reduce((sum, c) => sum + c.amount, 0);
+      return {
+        ...found,
+        moneyUsed: totalCost,
+      };
+    }
+    return found;
+  }, [tenantConfigs, activeTenantId, costRecords]);
+
+  const updateTenantConfig = (id: string, updated: Partial<TenantConfig>) => {
+    setTenantConfigs((prev) =>
+      prev.map((t) =>
+        t.id === id
+          ? {
+              ...t,
+              ...updated,
+              lastUpdated: new Date().toISOString().split('T')[0],
+            }
+          : t
+      )
+    );
+  };
+
+  const setActiveTenantId = (id: string) => {
+    if (tenantConfigs.some((t) => t.id === id)) {
+      setActiveTenantIdState(id);
+    }
+  };
+
+  const addTenantConfig = (newTenant: Omit<TenantConfig, 'id' | 'lastUpdated'>): string => {
+    const newId = `TNT-${Date.now().toString().slice(-6)}`;
+    const fullTenant: TenantConfig = {
+      ...newTenant,
+      id: newId,
+      lastUpdated: new Date().toISOString().split('T')[0],
+    };
+    setTenantConfigs((prev) => [...prev, fullTenant]);
+    setActiveTenantIdState(newId);
+    return newId;
+  };
+
   const [goldenPathAStatus, setGoldenPathAStatus] = useState({ active: false, currentStep: 0 });
   const [goldenPathBStatus, setGoldenPathBStatus] = useState({ active: false, currentStep: 0 });
 
@@ -147,6 +245,12 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setIncidents(INITIAL_INCIDENTS);
     setCostRecords(INITIAL_COST_RECORDS);
     setAlerts(INITIAL_ALERTS);
+    setTenantConfigs(INITIAL_TENANT_CONFIGS);
+    setActiveTenantIdState('TNT-NEXTR-001');
+    try {
+      localStorage.removeItem('nexttransit_tenant_configs');
+      localStorage.removeItem('nexttransit_active_tenant_id');
+    } catch (e) {}
     setCaeAvailableBudget(5500);
     setCaeDelayMultipliers({ Keystone: 2.2, Standard: 1.4 });
     setGoldenPathAStatus({ active: false, currentStep: 0 });
@@ -721,6 +825,13 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         isRoleSelectorOpen,
         goldenPathAStatus,
         goldenPathBStatus,
+
+        tenantConfigs,
+        activeTenantId,
+        activeTenant,
+        updateTenantConfig,
+        setActiveTenantId,
+        addTenantConfig,
 
         changeRole,
         changeScreen,
