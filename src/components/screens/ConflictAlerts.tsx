@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useFleet } from '../../context/FleetContext';
+import { useLocalization } from '../../context/LocalizationContext';
 import { KPIBadge } from '../common/KPIBadge';
 import {
   AlertTriangle,
@@ -14,6 +15,7 @@ import {
 
 export const ConflictAlerts: React.FC = () => {
   const { vehicles, alerts, resolveConflict, setSelectedVehicleId } = useFleet();
+  const { t } = useLocalization();
 
   const [notesModal, setNotesModal] = useState<{
     vehicleId: string;
@@ -41,13 +43,13 @@ export const ConflictAlerts: React.FC = () => {
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-rose-600 text-xs font-bold uppercase tracking-wider mb-1">
-            <AlertTriangle className="h-4 w-4" /> Fleet Manager View
+            <AlertTriangle className="h-4 w-4" /> {t('conflict.header_tag', {}, 'Rule R2 & R4 Conflict Avoidance Engine')}
           </div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-            Rule R4 Route Conflict & Departure Risk Alerts
+            {t('conflict.header_title', {}, 'Route Departure & Open WO Conflict Matrix')}
           </h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            Automated conflict resolution: flags passenger coaches scheduled for departure within 7 days with unresolved faults.
+            {t('conflict.header_desc', {}, 'Automatic detection of vehicles scheduled for departure within 3 days that have uncompleted work orders.')}
           </p>
         </div>
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useFleet } from '../../context/FleetContext';
+import { useLocalization } from '../../context/LocalizationContext';
 import { KPIBadge } from '../common/KPIBadge';
 import {
   Calculator,
@@ -24,6 +25,7 @@ export const CaeBudgetPrioritization: React.FC = () => {
     createWorkOrder,
     changeScreen,
   } = useFleet();
+  const { t } = useLocalization();
 
   const [isApprovedMessage, setIsApprovedMessage] = useState<boolean>(false);
 
@@ -71,13 +73,13 @@ export const CaeBudgetPrioritization: React.FC = () => {
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-indigo-600 text-xs font-bold uppercase tracking-wider mb-1">
-            <Calculator className="h-4 w-4" /> Strategic Decision Engine
+            <Calculator className="h-4 w-4" /> {t('cae.header_tag', {}, 'CAE Budget Optimization (Rule R5)')}
           </div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-            CAE Capital & Deferral Cost Prioritization Matrix
+            {t('cae.header_title', {}, 'CAE Repair Prioritization Matrix')}
           </h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            Rule R7 mathematical prioritization: ranks deferred repairs by financial risk exposure per dollar spent.
+            {t('cae.header_desc', {}, 'R5 Score = (Severity × 40%) + (Days to Route × 30%) + (ROI/Cost Ratio × 30%) to rank repairs.')}
           </p>
         </div>
 

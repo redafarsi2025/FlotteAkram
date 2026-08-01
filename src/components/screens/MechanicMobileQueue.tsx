@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useFleet } from '../../context/FleetContext';
+import { useLocalization } from '../../context/LocalizationContext';
 import { KPIBadge } from '../common/KPIBadge';
 import {
   Smartphone,
@@ -21,6 +22,7 @@ export const MechanicMobileQueue: React.FC = () => {
     closeWorkOrder,
     setSelectedVehicleId,
   } = useFleet();
+  const { t } = useLocalization();
 
   const [scanVehicleId, setScanVehicleId] = useState<string>(vehicles[0]?.id || '');
   const [scanFaultCode, setScanFaultCode] = useState<string>('P0299');
@@ -65,13 +67,13 @@ export const MechanicMobileQueue: React.FC = () => {
       <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-sm space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs uppercase tracking-wider">
-            <Smartphone className="h-4 w-4" /> Mechanic Mobile Terminal
+            <Smartphone className="h-4 w-4" /> {t('mechanic.header_tag', {}, 'Workshop Mechanic Mobile View')}
           </div>
           <KPIBadge type="Calculated" formula="Direct OBD Telemetry Linkage" />
         </div>
-        <h1 className="text-xl font-black tracking-tight">Workshop Task Queue & Diagnostic Scan</h1>
+        <h1 className="text-xl font-black tracking-tight">{t('mechanic.header_title', {}, 'Workshop Task Queue & Diagnostic Scan')}</h1>
         <p className="text-xs text-slate-400">
-          Mobile view for David Thorne (Technician). Scan vehicle OBD ports and close completed work orders.
+          {t('mechanic.header_desc', {}, 'Mobile view for technicians. Scan vehicle OBD ports and close completed work orders.')}
         </p>
       </div>
 
@@ -79,10 +81,10 @@ export const MechanicMobileQueue: React.FC = () => {
       <div className="bg-white p-5 rounded-2xl border border-indigo-200 shadow-xs space-y-4">
         <div className="flex items-center gap-2 text-indigo-900 font-bold text-sm">
           <QrCode className="h-5 w-5 text-indigo-600" />
-          Simulate OBD-II Diagnostic Scan (Golden Path Trigger)
+          {t('mechanic.scanner_title', {}, 'Simulate OBD-II Diagnostic Scan (Golden Path Trigger)')}
         </div>
         <p className="text-xs text-slate-500">
-          Connect virtual scanner to a vehicle's ECU to log active diagnostic trouble codes (DTCs) into the platform.
+          {t('mechanic.scanner_desc', {}, 'Connect virtual scanner to vehicle ECU to log diagnostic trouble codes (DTCs).')}
         </p>
 
         {scanSuccessMsg && (
@@ -94,7 +96,7 @@ export const MechanicMobileQueue: React.FC = () => {
 
         <form onSubmit={handleSimulateOBDScan} className="space-y-3 text-xs">
           <div>
-            <label className="font-bold text-slate-700 block mb-1">Target Vehicle in Workshop</label>
+            <label className="font-bold text-slate-700 block mb-1">{t('mechanic.target_vehicle', {}, 'Target Vehicle in Workshop')}</label>
             <select
               value={scanVehicleId}
               onChange={(e) => setScanVehicleId(e.target.value)}
@@ -102,7 +104,7 @@ export const MechanicMobileQueue: React.FC = () => {
             >
               {vehicles.map((v) => (
                 <option key={v.id} value={v.id}>
-                  {v.name} ({v.plate}) — Status: {v.status}
+                  {v.name} ({v.plate}) — {t('common.status', {}, 'Status')}: {t(`status.${v.status.toLowerCase()}`, {}, v.status)}
                 </option>
               ))}
             </select>
@@ -110,7 +112,7 @@ export const MechanicMobileQueue: React.FC = () => {
 
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="font-bold text-slate-700 block mb-1">OBD Trouble Code</label>
+              <label className="font-bold text-slate-700 block mb-1">{t('mechanic.obd_code', {}, 'OBD Trouble Code')}</label>
               <input
                 type="text"
                 value={scanFaultCode}
@@ -119,21 +121,21 @@ export const MechanicMobileQueue: React.FC = () => {
               />
             </div>
             <div>
-              <label className="font-bold text-slate-700 block mb-1">Severity Tier</label>
+              <label className="font-bold text-slate-700 block mb-1">{t('mechanic.severity_tier', {}, 'Severity Tier')}</label>
               <select
                 value={scanSeverity}
                 onChange={(e) => setScanSeverity(e.target.value as any)}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 font-bold text-slate-800"
               >
-                <option value="Critical">Critical (Red)</option>
-                <option value="Warning">Warning (Amber)</option>
-                <option value="Info">Info (Blue)</option>
+                <option value="Critical">{t('severity.critical', {}, 'Critical (Red)')}</option>
+                <option value="Warning">{t('severity.warning', {}, 'Warning (Amber)')}</option>
+                <option value="Info">{t('severity.info', {}, 'Info (Blue)')}</option>
               </select>
             </div>
           </div>
 
           <div>
-            <label className="font-bold text-slate-700 block mb-1">Fault Name / Description</label>
+            <label className="font-bold text-slate-700 block mb-1">{t('mechanic.fault_name', {}, 'Fault Name / Description')}</label>
             <input
               type="text"
               value={scanFaultName}
@@ -143,13 +145,13 @@ export const MechanicMobileQueue: React.FC = () => {
           </div>
 
           <div>
-            <label className="font-bold text-slate-700 block mb-1">Linked Part Required from Warehouse</label>
+            <label className="font-bold text-slate-700 block mb-1">{t('mechanic.linked_part', {}, 'Linked Part Required from Warehouse')}</label>
             <select
               value={scanPartId}
               onChange={(e) => setScanPartId(e.target.value)}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 font-medium text-slate-800"
             >
-              <option value="">None Required</option>
+              <option value="">{t('mechanic.none_required', {}, 'None Required')}</option>
               {inventory.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name} (SKU: {p.sku} - Stock: {p.quantity})
@@ -163,7 +165,7 @@ export const MechanicMobileQueue: React.FC = () => {
             className="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition cursor-pointer flex items-center justify-center gap-2 shadow-xs"
           >
             <Activity className="h-4 w-4" />
-            <span>Execute OBD Fault Scan Log</span>
+            <span>{t('mechanic.btn_scan', {}, 'Execute OBD Fault Scan Log')}</span>
           </button>
         </form>
       </div>
@@ -172,7 +174,7 @@ export const MechanicMobileQueue: React.FC = () => {
       <div className="space-y-3">
         <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
           <Wrench className="h-4 w-4 text-indigo-600" />
-          Assigned Open Work Orders ({assignedWorkOrders.length})
+          {t('mechanic.assigned_orders', {}, 'Assigned Open Work Orders')} ({assignedWorkOrders.length})
         </h3>
 
         {assignedWorkOrders.map((wo) => (
@@ -188,7 +190,7 @@ export const MechanicMobileQueue: React.FC = () => {
                 </span>
               </div>
               <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800">
-                {wo.status}
+                {t(`wostatus.${wo.status.toLowerCase().replace(' ', '_')}`, {}, wo.status)}
               </span>
             </div>
 
@@ -201,7 +203,7 @@ export const MechanicMobileQueue: React.FC = () => {
               className="w-full py-2.5 bg-emerald-600 text-white font-bold text-xs rounded-xl hover:bg-emerald-700 transition cursor-pointer flex items-center justify-center gap-1.5"
             >
               <CheckCircle2 className="h-4 w-4" />
-              <span>Complete & Deduct Parts</span>
+              <span>{t('mechanic.complete_deduct', {}, 'Complete & Deduct Parts')}</span>
             </button>
           </div>
         ))}
@@ -211,7 +213,7 @@ export const MechanicMobileQueue: React.FC = () => {
       {closeWOId && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-sm w-full p-5 space-y-3 border border-slate-200 shadow-xl">
-            <h3 className="font-bold text-slate-900 text-sm">Close Work Order #{closeWOId}</h3>
+            <h3 className="font-bold text-slate-900 text-sm">{t('mechanic.close_wo_title', {}, 'Close Work Order #')}{closeWOId}</h3>
             <textarea
               rows={3}
               value={closeNotes}
@@ -223,13 +225,13 @@ export const MechanicMobileQueue: React.FC = () => {
                 onClick={() => setCloseWOId(null)}
                 className="px-3 py-2 bg-slate-100 font-bold rounded-xl cursor-pointer"
               >
-                Cancel
+                {t('common.cancel', {}, 'Cancel')}
               </button>
               <button
                 onClick={handleCloseSubmit}
                 className="px-4 py-2 bg-emerald-600 text-white font-bold rounded-xl cursor-pointer"
               >
-                Submit Completion
+                {t('mechanic.submit_completion', {}, 'Submit Completion')}
               </button>
             </div>
           </div>
@@ -238,3 +240,4 @@ export const MechanicMobileQueue: React.FC = () => {
     </div>
   );
 };
+

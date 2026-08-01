@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useFleet } from '../../context/FleetContext';
+import { useLocalization } from '../../context/LocalizationContext';
 import { VehicleStatus, WorkOrder } from '../../types';
 import { KPIBadge } from '../common/KPIBadge';
 import {
@@ -41,6 +42,8 @@ export const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({
     createWorkOrder,
     closeWorkOrder,
   } = useFleet();
+  const { t } = useLocalization();
+
 
   const vehicle = vehicles.find((v) => v.id === vehicleId);
   const [showSubscores, setShowSubscores] = useState(false);
@@ -290,7 +293,7 @@ export const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({
               }`}
             >
               <Activity className="h-4 w-4" />
-              <span>Summary (RBAC: {currentRole === 'DIRECTOR' ? 'Director Tab' : 'General'})</span>
+              <span>{t('tab.summary', {}, 'Summary')}</span>
             </button>
           )}
 
@@ -304,7 +307,7 @@ export const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({
               }`}
             >
               <AlertCircle className="h-4 w-4" />
-              <span>Diagnostic Snapshot ({vehicle.active_fault_codes.length})</span>
+              <span>{t('tab.diagnostics', {}, 'Diagnostic Snapshot')} ({vehicle.active_fault_codes.length})</span>
             </button>
           )}
 
@@ -318,7 +321,7 @@ export const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({
               }`}
             >
               <Clock className="h-4 w-4" />
-              <span>Maintenance History ({vehicle.maintenance_history.length})</span>
+              <span>{t('tab.history', {}, 'Maintenance History')} ({vehicle.maintenance_history.length})</span>
             </button>
           )}
 
@@ -332,7 +335,7 @@ export const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({
               }`}
             >
               <DollarSign className="h-4 w-4" />
-              <span>Cost Tab (RBAC: Mgmt Controller)</span>
+              <span>{t('tab.cost', {}, 'Cost Breakdown')}</span>
             </button>
           )}
 
@@ -346,7 +349,7 @@ export const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({
               }`}
             >
               <Package className="h-4 w-4" />
-              <span>Parts Tab (RBAC: Logistics Controller)</span>
+              <span>{t('tab.parts', {}, 'Parts Inventory')}</span>
             </button>
           )}
 
@@ -360,7 +363,7 @@ export const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({
               }`}
             >
               <Wrench className="h-4 w-4" />
-              <span>Work Orders ({vehicleWorkOrders.length})</span>
+              <span>{t('tab.work_orders', {}, 'Work Orders')} ({vehicleWorkOrders.length})</span>
             </button>
           )}
         </div>

@@ -27,7 +27,8 @@ export type ScreenId =
   | 'INCIDENT_REPORTS'
   | 'MECHANIC_MOBILE_QUEUE'
   | 'DRIVER_MOBILE_VIEW'
-  | 'TENANT_CONFIG';
+  | 'TENANT_CONFIG'
+  | 'TRANSLATION_CENTER';
 
 export type PermissionLevel = 'full' | 'view' | 'none' | 'resolve' | 'parts_status' | 'assigned_only' | 'own_only' | 'submit';
 

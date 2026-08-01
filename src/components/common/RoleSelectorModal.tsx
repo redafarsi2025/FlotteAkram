@@ -1,5 +1,6 @@
 import React from 'react';
 import { useFleet } from '../../context/FleetContext';
+import { useLocalization } from '../../context/LocalizationContext';
 import { ROLES_CONFIG } from '../../data/seedData';
 import { Role } from '../../types';
 import {
@@ -20,6 +21,7 @@ interface RoleSelectorModalProps {
 
 export const RoleSelectorModal: React.FC<RoleSelectorModalProps> = ({ onClose }) => {
   const { currentRole, changeRole, setIsRoleSelectorOpen } = useFleet();
+  const { t } = useLocalization();
 
   const getRoleIcon = (roleId: Role) => {
     switch (roleId) {
@@ -52,7 +54,7 @@ export const RoleSelectorModal: React.FC<RoleSelectorModalProps> = ({ onClose })
               NextTransit Fleet Decision Platform
             </div>
             <h2 className="text-2xl font-bold tracking-tight text-white">
-              Select Your Role & Access View
+              {t('modal.role_selector', {}, 'Select Your Role & Access View')}
             </h2>
             <p className="mt-1 text-sm text-slate-300 max-w-2xl">
               NextTransit operates with 7 role-based views sharing one mathematically verified data model.
@@ -98,7 +100,7 @@ export const RoleSelectorModal: React.FC<RoleSelectorModalProps> = ({ onClose })
                       {isSelected && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-semibold text-indigo-800 border border-indigo-200">
                           <CheckCircle2 className="h-3.5 w-3.5" />
-                          Active
+                          {t('modal.active_role', {}, 'Active')}
                         </span>
                       )}
                     </div>
@@ -115,7 +117,7 @@ export const RoleSelectorModal: React.FC<RoleSelectorModalProps> = ({ onClose })
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-medium text-indigo-600">
-                    <span>Enter as {roleInfo.name}</span>
+                    <span>{t('modal.enter_as', {}, 'Enter as')} {roleInfo.name}</span>
                     <span className="group-hover:translate-x-1 transition-transform">→</span>
                   </div>
                 </button>
@@ -132,7 +134,7 @@ export const RoleSelectorModal: React.FC<RoleSelectorModalProps> = ({ onClose })
               onClick={() => setIsRoleSelectorOpen(false)}
               className="px-4 py-2 text-xs font-semibold rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition cursor-pointer shrink-0"
             >
-              Continue with Current Role ({ROLES_CONFIG.find((r) => r.id === currentRole)?.name})
+              {t('modal.continue_role', {}, 'Continue with Current Role')} ({ROLES_CONFIG.find((r) => r.id === currentRole)?.name})
             </button>
           </div>
         </div>
@@ -140,3 +142,4 @@ export const RoleSelectorModal: React.FC<RoleSelectorModalProps> = ({ onClose })
     </div>
   );
 };
+

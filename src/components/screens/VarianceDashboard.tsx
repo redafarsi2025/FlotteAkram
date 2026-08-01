@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useFleet } from '../../context/FleetContext';
+import { useLocalization } from '../../context/LocalizationContext';
 import { KPIBadge } from '../common/KPIBadge';
 import {
   BarChart3,
@@ -14,6 +15,7 @@ import {
 
 export const VarianceDashboard: React.FC = () => {
   const { costRecords, vehicles, workOrders, setSelectedVehicleId } = useFleet();
+  const { t } = useLocalization();
 
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [selectedClassification, setSelectedClassification] = useState<string>('ALL');
@@ -61,13 +63,13 @@ export const VarianceDashboard: React.FC = () => {
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-indigo-600 text-xs font-bold uppercase tracking-wider mb-1">
-            <BarChart3 className="h-4 w-4" /> Management Controller View
+            <BarChart3 className="h-4 w-4" /> {t('variance.header_tag', {}, 'Management Controller View')}
           </div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-            Financial Variance & Cost Distribution
+            {t('variance.header_title', {}, 'Financial Variance & Cost Distribution')}
           </h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            Traceable financial auditing: compare actual maintenance expenses against allocated quarterly budget limits.
+            {t('variance.header_desc', {}, 'Traceable financial auditing: compare actual maintenance expenses against allocated quarterly budget limits.')}
           </p>
         </div>
 
@@ -80,29 +82,29 @@ export const VarianceDashboard: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-2">
           <div className="flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider">
-            <span>Total Actual Maintenance Spend</span>
+            <span>{t('variance.total_actual_spend', {}, 'Total Actual Maintenance Spend')}</span>
             <KPIBadge type="Calculated" formula="Sum of all work order & parts costs" />
           </div>
           <div className="text-3xl font-black text-slate-900">
             ${totalActual.toLocaleString()}
           </div>
-          <p className="text-xs text-slate-500">Across {costRecords.length} recorded line items</p>
+          <p className="text-xs text-slate-500">{t('variance.line_items', {}, 'Across recorded line items')}</p>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-2">
           <div className="flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider">
-            <span>Total Allocated Budget</span>
+            <span>{t('variance.total_allocated_budget', {}, 'Total Allocated Budget')}</span>
             <KPIBadge type="Configured" formula="Quarterly Budget Baseline" />
           </div>
           <div className="text-3xl font-black text-slate-900">
             ${totalBudget.toLocaleString()}
           </div>
-          <p className="text-xs text-slate-500">Q3 2026 Fleet Maintenance Cap</p>
+          <p className="text-xs text-slate-500">{t('finance.budget_allocated', {}, 'Q3 Fleet Maintenance Cap')}</p>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-2">
           <div className="flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider">
-            <span>Net Financial Variance</span>
+            <span>{t('variance.net_variance', {}, 'Net Financial Variance')}</span>
             <KPIBadge type="Calculated" formula="Actual - Budget" />
           </div>
           <div

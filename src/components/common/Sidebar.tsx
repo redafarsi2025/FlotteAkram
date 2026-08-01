@@ -1,5 +1,6 @@
 import React from 'react';
 import { useFleet } from '../../context/FleetContext';
+import { useLocalization } from '../../context/LocalizationContext';
 import { RBAC_MATRIX, ROLES_CONFIG } from '../../data/seedData';
 import { ScreenId, PermissionLevel } from '../../types';
 import {
@@ -15,10 +16,12 @@ import {
   Smartphone,
   ShieldAlert,
   Building2,
+  Globe,
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
   const { currentRole, currentScreen, changeScreen, alerts } = useFleet();
+  const { t } = useLocalization();
 
   const activeRoleInfo = ROLES_CONFIG.find((r) => r.id === currentRole);
 
@@ -31,70 +34,76 @@ export const Sidebar: React.FC = () => {
   }[] = [
     {
       id: 'STRATEGIC_DASHBOARD',
-      label: 'Strategic Dashboard',
+      label: t('nav.strategic_dashboard', {}, 'Strategic Dashboard'),
       icon: TrendingUp,
-      description: 'Director KPI cards & fleet availability',
+      description: t('nav.strategic_desc', {}, 'Director KPI cards & fleet availability'),
     },
     {
       id: 'VARIANCE_DASHBOARD',
-      label: 'Variance & Budget',
+      label: t('nav.variance_dashboard', {}, 'Variance & Budget'),
       icon: BarChart3,
-      description: 'Drill-down: fleet → category → vehicle → WO',
+      description: t('nav.variance_desc', {}, 'Drill-down: fleet → category → vehicle → WO'),
     },
     {
       id: 'FLEET_HEALTH_GRID',
-      label: 'Fleet Health Grid',
+      label: t('nav.fleet_health_grid', {}, 'Fleet Health Grid'),
       icon: Activity,
-      description: 'Status filter counts & diagnostic snapshots',
+      description: t('nav.fleet_health_desc', {}, 'Status filter counts & diagnostic snapshots'),
     },
     {
       id: 'INVENTORY_DASHBOARD',
-      label: 'Inventory Dashboard',
+      label: t('nav.inventory_dashboard', {}, 'Inventory Dashboard'),
       icon: Package,
-      description: 'Stock values & R5 projected shortfalls',
+      description: t('nav.inventory_desc', {}, 'Stock values & R3 projected shortfalls'),
     },
     {
       id: 'WORK_ORDER_QUEUE',
-      label: 'Work Order Queue',
+      label: t('nav.work_order_queue', {}, 'Work Order Queue'),
       icon: Wrench,
-      description: 'Create & approve maintenance interventions',
+      description: t('nav.work_order_desc', {}, 'Create & approve maintenance interventions'),
     },
     {
       id: 'CONFLICT_ALERTS',
-      label: 'Conflict Alerts (R4)',
+      label: t('nav.conflict_alerts', {}, 'Conflict Alerts (R2/R4)'),
       icon: AlertTriangle,
-      description: 'Critical vehicles scheduled for use',
+      description: t('nav.conflict_desc', {}, 'Critical vehicles scheduled for use'),
       badgeCount: alerts.filter((a) => a.rule_id === 'R4' && !a.read).length,
     },
     {
       id: 'CAE_BUDGET_PRIORITIZATION',
-      label: 'CAE Prioritization',
+      label: t('nav.cae_prioritization', {}, 'CAE Prioritization'),
       icon: Calculator,
-      description: 'Ranked repair vs. statistical deferral cost',
+      description: t('nav.cae_desc', {}, 'Ranked repair vs. statistical deferral cost'),
     },
     {
       id: 'INCIDENT_REPORTS',
-      label: 'Incident Investigation',
+      label: t('nav.incident_reports', {}, 'Incident Investigation (R6)'),
       icon: FileText,
-      description: 'R6 driver reports & OBD fault linkage',
+      description: t('nav.incident_desc', {}, 'R6 driver reports & OBD fault linkage'),
     },
     {
       id: 'MECHANIC_MOBILE_QUEUE',
-      label: 'Mechanic Task Queue',
+      label: t('nav.mechanic_mobile_queue', {}, 'Mechanic Task Queue'),
       icon: Smartphone,
-      description: 'Mobile task execution & OBD fault scan',
+      description: t('nav.mechanic_desc', {}, 'Mobile task execution & OBD fault scan'),
     },
     {
       id: 'DRIVER_MOBILE_VIEW',
-      label: 'Driver Mobile View',
+      label: t('nav.driver_mobile_view', {}, 'Driver Mobile View'),
       icon: Truck,
-      description: 'Status indicator & instant issue report',
+      description: t('nav.driver_desc', {}, 'Status indicator & instant issue report'),
     },
     {
       id: 'TENANT_CONFIG',
-      label: 'Tenant & Society Config',
+      label: t('nav.tenant_config', {}, 'Tenant & Society Config'),
       icon: Building2,
-      description: 'Society name, budget & money used settings',
+      description: t('nav.tenant_desc', {}, 'Society name, budget & money used settings'),
+    },
+    {
+      id: 'TRANSLATION_CENTER',
+      label: t('nav.translation_center', {}, 'Translation Center'),
+      icon: Globe,
+      description: t('nav.translation_desc', {}, 'Enterprise localization, Gemini AI & RTL'),
     },
   ];
 

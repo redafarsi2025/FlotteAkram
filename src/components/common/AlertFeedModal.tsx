@@ -1,5 +1,6 @@
 import React from 'react';
 import { useFleet } from '../../context/FleetContext';
+import { useLocalization } from '../../context/LocalizationContext';
 import { FleetAlert } from '../../types';
 import {
   AlertTriangle,
@@ -18,6 +19,7 @@ interface AlertFeedModalProps {
 
 export const AlertFeedModal: React.FC<AlertFeedModalProps> = ({ onClose }) => {
   const { alerts, markAlertRead, changeScreen, setSelectedVehicleId, inventory } = useFleet();
+  const { t } = useLocalization();
 
   const openAlerts = alerts.filter((a) => !a.read);
   const readAlerts = alerts.filter((a) => a.read);
@@ -83,9 +85,9 @@ export const AlertFeedModal: React.FC<AlertFeedModalProps> = ({ onClose }) => {
               <AlertCircle className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold">Rule-Based Active Alerts</h3>
+              <h3 className="text-lg font-bold">{t('alertfeed.title', {}, 'Rule-Based Active Alerts')}</h3>
               <p className="text-xs text-slate-300">
-                {openAlerts.length} unread notification(s) • Linked inventory & schedule rules
+                {openAlerts.length} {t('alertfeed.unread_count', {}, 'unread notification(s)')} • {t('alertfeed.subtitle', {}, 'Linked inventory & schedule rules')}
               </p>
             </div>
           </div>
@@ -102,15 +104,15 @@ export const AlertFeedModal: React.FC<AlertFeedModalProps> = ({ onClose }) => {
           {alerts.length === 0 ? (
             <div className="text-center py-12 text-slate-500">
               <CheckCircle2 className="h-10 w-10 mx-auto text-emerald-500 mb-2" />
-              <p className="font-semibold text-slate-700">No active alerts</p>
-              <p className="text-xs text-slate-500">All fleet systems and inventory thresholds nominal.</p>
+              <p className="font-semibold text-slate-700">{t('alertfeed.no_alerts', {}, 'No active alerts')}</p>
+              <p className="text-xs text-slate-500">{t('alertfeed.all_nominal', {}, 'All fleet systems and inventory thresholds nominal.')}</p>
             </div>
           ) : (
             <>
               {openAlerts.length > 0 && (
                 <div className="space-y-3">
                   <div className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Open Alerts ({openAlerts.length})
+                    {t('alertfeed.open_alerts', {}, 'Open Alerts')} ({openAlerts.length})
                   </div>
                   {openAlerts.map((alert) => {
                     const linkedPart = alert.part_id ? inventory.find((i) => i.id === alert.part_id) : null;
@@ -165,14 +167,14 @@ export const AlertFeedModal: React.FC<AlertFeedModalProps> = ({ onClose }) => {
                             onClick={() => markAlertRead(alert.id)}
                             className="text-xs font-semibold text-slate-600 hover:text-slate-900 cursor-pointer"
                           >
-                            Mark as Read
+                            {t('alertfeed.mark_read', {}, 'Mark as Read')}
                           </button>
 
                           <button
                             onClick={() => handleActionClick(alert)}
                             className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 cursor-pointer"
                           >
-                            <span>Inspect Source</span>
+                            <span>{t('alertfeed.inspect_source', {}, 'Inspect Source')}</span>
                             <ArrowRight className="h-3.5 w-3.5" />
                           </button>
                         </div>
@@ -185,7 +187,7 @@ export const AlertFeedModal: React.FC<AlertFeedModalProps> = ({ onClose }) => {
               {readAlerts.length > 0 && (
                 <div className="space-y-3 pt-4 border-t border-slate-200">
                   <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                    Previous Alerts ({readAlerts.length})
+                    {t('alertfeed.prev_alerts', {}, 'Previous Alerts')} ({readAlerts.length})
                   </div>
                   {readAlerts.map((alert) => (
                     <div
@@ -211,16 +213,17 @@ export const AlertFeedModal: React.FC<AlertFeedModalProps> = ({ onClose }) => {
         {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex justify-between items-center">
           <span className="text-xs text-slate-500">
-            Rules R1, R2, R3, R4, R6, R7 are active
+            {t('alertfeed.rules_active', {}, 'Rules R1, R2, R3, R4, R6, R7 are active')}
           </span>
           <button
             onClick={onClose}
             className="rounded-lg bg-slate-900 px-4 py-1.5 text-xs font-medium text-white hover:bg-slate-800 cursor-pointer"
           >
-            Close Feed
+            {t('common.close', {}, 'Close Feed')}
           </button>
         </div>
       </div>
     </div>
   );
 };
+

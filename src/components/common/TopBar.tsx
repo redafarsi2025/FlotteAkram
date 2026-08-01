@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useFleet } from '../../context/FleetContext';
+import { useLocalization } from '../../context/LocalizationContext';
 import { ROLES_CONFIG } from '../../data/seedData';
 import { Role } from '../../types';
 import {
@@ -19,9 +20,11 @@ import {
 import { AlertFeedModal } from './AlertFeedModal';
 import { GoldenPathModal } from './GoldenPathModal';
 import { RoleSelectorModal } from './RoleSelectorModal';
+import { LanguageSelector } from '../localization/LanguageSelector';
 
 export const TopBar: React.FC = () => {
   const { currentRole, changeRole, alerts, resetSeedData, isRoleSelectorOpen, setIsRoleSelectorOpen } = useFleet();
+  const { t } = useLocalization();
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [showGoldenPathModal, setShowGoldenPathModal] = useState(false);
   const [showRoleMenu, setShowRoleMenu] = useState(false);
@@ -66,7 +69,7 @@ export const TopBar: React.FC = () => {
                 NextTransit
               </span>
               <span className="ml-2 hidden sm:inline-flex items-center rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700 border border-indigo-200">
-                7 Role-Based Views • 1 Shared Model
+                {t('topbar.subtitle', {}, '7 Role-Based Views • 1 Shared Model')}
               </span>
             </div>
           </div>
@@ -77,23 +80,26 @@ export const TopBar: React.FC = () => {
             title="Open Interactive Demo Scenarios (Golden Path A & B)"
           >
             <Sparkles className="h-3.5 w-3.5" />
-            <span className="hidden md:inline">Demo Scenarios (Golden Path A/B)</span>
+            <span className="hidden md:inline">{t('topbar.demo_scenarios', {}, 'Demo Scenarios (Golden Path A/B)')}</span>
             <span className="md:hidden">Scenarios</span>
           </button>
         </div>
 
-        {/* Right: Role Switcher, Reset Data, and Open Alerts */}
+        {/* Right: Role Switcher, Language Selector, Reset Data, and Open Alerts */}
         <div className="flex items-center gap-3">
+          {/* Language Selector */}
+          <LanguageSelector />
+
           {/* Reset Seed Data */}
           <button
             onClick={() => {
               resetSeedData();
             }}
             className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 transition cursor-pointer"
-            title="Reset to clean initial seed data"
+            title={t('topbar.reset_tooltip', {}, 'Reset to clean initial seed data')}
           >
             <RotateCcw className="h-3.5 w-3.5 text-slate-500" />
-            <span>Reset Data</span>
+            <span>{t('topbar.reset_data', {}, 'Reset Data')}</span>
           </button>
 
           {/* Alert count button */}

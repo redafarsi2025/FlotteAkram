@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useFleet } from '../../context/FleetContext';
+import { useLocalization } from '../../context/LocalizationContext';
 import { KPIBadge } from '../common/KPIBadge';
 import {
   FileText,
@@ -13,6 +14,7 @@ import {
 
 export const IncidentReports: React.FC = () => {
   const { incidents, vehicles, logOBDFault, createWorkOrder, submitDriverIncident, setSelectedVehicleId } = useFleet();
+  const { t } = useLocalization();
 
   const [filterType, setFilterType] = useState<string>('ALL');
 
@@ -41,13 +43,13 @@ export const IncidentReports: React.FC = () => {
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-indigo-600 text-xs font-bold uppercase tracking-wider mb-1">
-            <FileText className="h-4 w-4" /> Operations & Safety Audit
+            <FileText className="h-4 w-4" /> {t('incidents.header_tag', {}, 'Driver Incident Telemetry Reconciliation (Rule R6)')}
           </div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-            Driver Incident Reports & Rule R6 Investigations
+            {t('incidents.header_title', {}, 'Incident Audits & R6 Investigation Queue')}
           </h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            Rule R6 telemetry verification: driver reports without corresponding OBD fault codes automatically trigger a technical investigation.
+            {t('incidents.header_desc', {}, 'Any driver-reported incident without matching OBD code automatically triggers an R6 Investigation Work Order.')}
           </p>
         </div>
 

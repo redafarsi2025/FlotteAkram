@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useFleet } from '../../context/FleetContext';
+import { useLocalization } from '../../context/LocalizationContext';
 import { KPIBadge } from '../common/KPIBadge';
 import { TenantConfig as TenantConfigType } from '../../types';
 import {
@@ -34,6 +35,7 @@ export const TenantConfig: React.FC = () => {
     addTenantConfig,
     costRecords,
   } = useFleet();
+  const { t } = useLocalization();
 
   // Local form state initialized with activeTenant values
   const [formData, setFormData] = useState<TenantConfigType>(activeTenant);
@@ -173,21 +175,21 @@ export const TenantConfig: React.FC = () => {
           <div className="flex items-center gap-2 mb-1">
             <KPIBadge label="Configured" type="Configured" />
             <span className="text-xs font-semibold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
-              Tenant & Society Management Engine
+              {t('tenant.header_tag', {}, 'Tenant & Society Management Engine')}
             </span>
           </div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Tenant & Society Configuration
+            {t('tenant.header_title', {}, 'Tenant & Society Configuration')}
           </h1>
           <p className="text-sm text-slate-600 mt-1">
-            Configure multi-tenant parameters, society details, allocated financial budgets, currency rules, and labor rates.
+            {t('tenant.header_desc', {}, 'Configure multi-tenant parameters, society details, allocated financial budgets, currency rules, and labor rates.')}
           </p>
         </div>
 
         {/* Tenant Profile Switcher & New Society Trigger */}
         <div className="flex items-center gap-3">
           <div className="flex flex-col">
-            <label className="text-xs font-medium text-slate-500 mb-1">Active Tenant Profile</label>
+            <label className="text-xs font-medium text-slate-500 mb-1">{t('tenant.active_profile', {}, 'Active Tenant Profile')}</label>
             <div className="relative">
               <select
                 value={activeTenantId}

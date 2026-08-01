@@ -171,6 +171,15 @@ export const RBAC_MATRIX: Record<ScreenId, Record<Role, PermissionLevel>> = {
     MECHANIC: 'none',
     DRIVER: 'none',
   },
+  TRANSLATION_CENTER: {
+    DIRECTOR: 'full',
+    MGMT_CONTROLLER: 'full',
+    TECHNICAL_CONTROLLER: 'view',
+    LOGISTICS_CONTROLLER: 'view',
+    FLEET_MANAGER: 'full',
+    MECHANIC: 'view',
+    DRIVER: 'view',
+  },
 };
 
 export const INITIAL_TENANT_CONFIGS: TenantConfig[] = [

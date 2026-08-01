@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useFleet } from '../../context/FleetContext';
+import { useLocalization } from '../../context/LocalizationContext';
 import { KPIBadge } from '../common/KPIBadge';
 import {
   Wrench,
@@ -24,6 +25,7 @@ export const WorkOrderQueue: React.FC = () => {
     setSelectedVehicleId,
     currentRole,
   } = useFleet();
+  const { t } = useLocalization();
 
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
@@ -105,13 +107,13 @@ export const WorkOrderQueue: React.FC = () => {
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-indigo-600 text-xs font-bold uppercase tracking-wider mb-1">
-            <Wrench className="h-4 w-4" /> Technical Controller & Workshop Queue
+            <Wrench className="h-4 w-4" /> {t('wo.header_tag', {}, 'Technical Controller & Workshop Queue')}
           </div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-            Maintenance Work Order Interventions
+            {t('wo.header_title', {}, 'Maintenance Work Order Interventions')}
           </h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            Rule R1 & R3 synchronized repairs: closing work orders automatically deducts inventory and restores vehicle health.
+            {t('wo.header_desc', {}, 'Rule R1 & R3 synchronized repairs: closing work orders automatically deducts inventory and restores vehicle health.')}
           </p>
         </div>
 
@@ -126,7 +128,7 @@ export const WorkOrderQueue: React.FC = () => {
               className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white font-semibold text-xs rounded-xl shadow-xs hover:bg-indigo-700 transition cursor-pointer"
             >
               <Plus className="h-4 w-4" />
-              <span>Create Work Order</span>
+              <span>{t('wo.new_wo', {}, 'Create Work Order')}</span>
             </button>
           )}
         </div>
