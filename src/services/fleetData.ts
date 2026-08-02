@@ -42,9 +42,13 @@ const cacheStore = new Map<string, CacheEntry<any>>();
  * Clears the fleet data local cache.
  * If a specific key is provided, clears only that key; otherwise flushes all cached data.
  */
-export function clearFleetCache(key?: string): void {
-  if (key) {
-    cacheStore.delete(key);
+export function clearFleetCache(keyPrefix?: string): void {
+  if (keyPrefix) {
+    for (const key of Array.from(cacheStore.keys())) {
+      if (key === keyPrefix || key.startsWith(`${keyPrefix}_`)) {
+        cacheStore.delete(key);
+      }
+    }
   } else {
     cacheStore.clear();
   }

@@ -53,7 +53,6 @@ import {
   Calendar,
 } from 'lucide-react';
 
-// @ts-ignore
 import landingBg from '../../assets/images/landing_page_bg_1785625768294.jpg';
 
 // Scenario interface for dynamic KPI preview

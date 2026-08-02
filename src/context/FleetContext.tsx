@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
+import { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import {
   fetchVehicles,
@@ -51,7 +52,7 @@ interface FleetContextType {
   isRoleSelectorOpen: boolean;
   goldenPathAStatus: { active: boolean; currentStep: number };
   goldenPathBStatus: { active: boolean; currentStep: number };
-  currentUser: any;
+  currentUser: User | null;
 
   // Tenant Configuration State & Actions
   tenantConfigs: TenantConfig[];
@@ -124,7 +125,7 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [currentScreen, setCurrentScreen] = useState<ScreenId>('LANDING_PAGE');
   const [isRoleSelectorOpen, setIsRoleSelectorOpen] = useState<boolean>(false); // Start false so Landing Page shows clean first
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   const [vehicles, setVehicles] = useState<Vehicle[]>(() => INITIAL_VEHICLES);
   const [inventory, setInventory] = useState<InventoryItem[]>(() => INITIAL_INVENTORY);
