@@ -3,6 +3,7 @@ import { useFleet } from '../../context/FleetContext';
 import { useLocalization } from '../../context/LocalizationContext';
 import { ROLES_CONFIG } from '../../data/seedData';
 import { Role } from '../../types';
+import { supabase } from '../../lib/supabase';
 import {
   Bell,
   ChevronDown,
@@ -17,6 +18,8 @@ import {
   Truck,
   Users,
   KeyRound,
+  LogIn,
+  LogOut,
 } from 'lucide-react';
 import { AlertFeedModal } from './AlertFeedModal';
 import { GoldenPathModal } from './GoldenPathModal';
@@ -25,7 +28,7 @@ import { AuthModal } from './AuthModal';
 import { LanguageSelector } from '../localization/LanguageSelector';
 
 export const TopBar: React.FC = () => {
-  const { currentRole, changeRole, alerts, resetSeedData, isRoleSelectorOpen, setIsRoleSelectorOpen } = useFleet();
+  const { currentRole, changeRole, alerts, resetSeedData, isRoleSelectorOpen, setIsRoleSelectorOpen, currentUser } = useFleet();
   const { t } = useLocalization();
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [showGoldenPathModal, setShowGoldenPathModal] = useState(false);
@@ -106,14 +109,32 @@ export const TopBar: React.FC = () => {
           </button>
 
           {/* Auth & Security Modal Toggle */}
-          <button
-            onClick={() => setShowAuthModal(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition cursor-pointer"
-            title="Manage Real Supabase Auth Session & Tenant RLS"
-          >
-            <KeyRound className="h-3.5 w-3.5 text-indigo-600" />
-            <span className="hidden sm:inline">Auth & RLS</span>
-          </button>
+          {currentUser ? (
+            <div className="flex items-center gap-2">
+              <span className="hidden lg:inline text-xs font-medium text-slate-500 font-mono bg-slate-100 px-2 py-1 rounded-md max-w-[150px] truncate" title={currentUser.email}>
+                {currentUser.email}
+              </span>
+              <button
+                onClick={async () => {
+                  await supabase.auth.signOut();
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition cursor-pointer"
+                title={t('topbar.logout', {}, 'Déconnexion de la session')}
+              >
+                <LogOut className="h-3.5 w-3.5 text-red-600" />
+                <span>{t('topbar.logout_label', {}, 'Déconnexion')}</span>
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowAuthModal(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition cursor-pointer"
+              title={t('topbar.login', {}, 'Connexion / Création de compte')}
+            >
+              <LogIn className="h-3.5 w-3.5 text-indigo-600" />
+              <span>{t('topbar.login_label', {}, 'Connexion')}</span>
+            </button>
+          )}
 
           {/* Alert count button */}
           <button

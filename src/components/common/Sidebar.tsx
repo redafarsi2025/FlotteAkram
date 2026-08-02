@@ -17,6 +17,7 @@ import {
   ShieldAlert,
   Building2,
   Globe,
+  Sparkles,
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {

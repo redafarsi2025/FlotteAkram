@@ -5,7 +5,8 @@ import { TopBar } from './components/common/TopBar';
 import { Sidebar } from './components/common/Sidebar';
 import { VehicleDetailModal } from './components/vehicle/VehicleDetailModal';
 
-// Import all 11 screen components
+// Import all 12 screen components
+import { LandingPage } from './components/screens/LandingPage';
 import { StrategicDashboard } from './components/screens/StrategicDashboard';
 import { VarianceDashboard } from './components/screens/VarianceDashboard';
 import { FleetHealthGrid } from './components/screens/FleetHealthGrid';
@@ -25,6 +26,8 @@ const MainAppContent: React.FC = () => {
 
   const renderScreen = () => {
     switch (currentScreen) {
+      case 'LANDING_PAGE':
+        return <LandingPage />;
       case 'STRATEGIC_DASHBOARD':
         return <StrategicDashboard />;
       case 'VARIANCE_DASHBOARD':
@@ -59,10 +62,10 @@ const MainAppContent: React.FC = () => {
       dir={dir}
       className="min-h-screen bg-slate-100 flex flex-col font-sans antialiased text-slate-900 transition-all duration-200"
     >
-      <TopBar />
+      {currentScreen !== 'LANDING_PAGE' && <TopBar />}
 
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
+        {currentScreen !== 'LANDING_PAGE' && <Sidebar />}
 
         <main className="flex-1 overflow-y-auto min-w-0 p-4 lg:p-6 pb-12">
           {renderScreen()}

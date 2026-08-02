@@ -72,6 +72,15 @@ export const ROLES_CONFIG: RoleInfo[] = [
 ];
 
 export const RBAC_MATRIX: Record<ScreenId, Record<Role, PermissionLevel>> = {
+  LANDING_PAGE: {
+    DIRECTOR: 'full',
+    MGMT_CONTROLLER: 'full',
+    TECHNICAL_CONTROLLER: 'full',
+    LOGISTICS_CONTROLLER: 'full',
+    FLEET_MANAGER: 'full',
+    MECHANIC: 'full',
+    DRIVER: 'full',
+  },
   STRATEGIC_DASHBOARD: {
     DIRECTOR: 'full',
     MGMT_CONTROLLER: 'view',

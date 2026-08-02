@@ -17,6 +17,7 @@ export interface RoleInfo {
 }
 
 export type ScreenId =
+  | 'LANDING_PAGE'
   | 'STRATEGIC_DASHBOARD'
   | 'VARIANCE_DASHBOARD'
   | 'FLEET_HEALTH_GRID'

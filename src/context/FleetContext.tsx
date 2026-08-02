@@ -51,6 +51,7 @@ interface FleetContextType {
   isRoleSelectorOpen: boolean;
   goldenPathAStatus: { active: boolean; currentStep: number };
   goldenPathBStatus: { active: boolean; currentStep: number };
+  currentUser: any;
 
   // Tenant Configuration State & Actions
   tenantConfigs: TenantConfig[];
@@ -120,9 +121,10 @@ const FleetContext = createContext<FleetContextType | undefined>(undefined);
 
 export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentRole, setCurrentRole] = useState<Role>('DIRECTOR');
-  const [currentScreen, setCurrentScreen] = useState<ScreenId>('STRATEGIC_DASHBOARD');
-  const [isRoleSelectorOpen, setIsRoleSelectorOpen] = useState<boolean>(true); // Open on first load per prompt
+  const [currentScreen, setCurrentScreen] = useState<ScreenId>('LANDING_PAGE');
+  const [isRoleSelectorOpen, setIsRoleSelectorOpen] = useState<boolean>(false); // Start false so Landing Page shows clean first
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   const [vehicles, setVehicles] = useState<Vehicle[]>(() => INITIAL_VEHICLES);
   const [inventory, setInventory] = useState<InventoryItem[]>(() => INITIAL_INVENTORY);
@@ -165,6 +167,7 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   useEffect(() => {
     const handleAuthState = (session: any) => {
       if (session?.user) {
+        setCurrentUser(session.user);
         const userMetadata = session.user.user_metadata || {};
         const appMetadata = session.user.app_metadata || {};
         
@@ -177,6 +180,8 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         if (tenantId) {
           setActiveTenantIdState(tenantId);
         }
+      } else {
+        setCurrentUser(null);
       }
     };
 
@@ -912,6 +917,7 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         isRoleSelectorOpen,
         goldenPathAStatus,
         goldenPathBStatus,
+        currentUser,
 
         tenantConfigs,
         activeTenantId,
