@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { FleetProvider, useFleet } from './context/FleetContext';
 import { LocalizationProvider, useLocalization } from './context/LocalizationContext';
 import { TopBar } from './components/common/TopBar';
 import { Sidebar } from './components/common/Sidebar';
 import { VehicleDetailModal } from './components/vehicle/VehicleDetailModal';
+import { ScreenId } from './types';
 
 // Import all 12 screen components
 import { LandingPage } from './components/screens/LandingPage';
@@ -20,55 +22,89 @@ import { DriverMobileView } from './components/screens/DriverMobileView';
 import { TenantConfig } from './components/screens/TenantConfig';
 import { TranslationCenter } from './components/screens/TranslationCenter';
 
-const MainAppContent: React.FC = () => {
-  const { currentScreen, selectedVehicleId, setSelectedVehicleId } = useFleet();
-  const { dir } = useLocalization();
+const routeToScreenMap: Record<string, ScreenId> = {
+  '/': 'LANDING_PAGE',
+  '/dashboard': 'STRATEGIC_DASHBOARD',
+  '/variance': 'VARIANCE_DASHBOARD',
+  '/vehicles': 'FLEET_HEALTH_GRID',
+  '/inventory': 'INVENTORY_DASHBOARD',
+  '/work-orders': 'WORK_ORDER_QUEUE',
+  '/conflicts': 'CONFLICT_ALERTS',
+  '/cae': 'CAE_BUDGET_PRIORITIZATION',
+  '/incidents': 'INCIDENT_REPORTS',
+  '/mechanic': 'MECHANIC_MOBILE_QUEUE',
+  '/driver': 'DRIVER_MOBILE_VIEW',
+  '/tenant-config': 'TENANT_CONFIG',
+  '/translation': 'TRANSLATION_CENTER',
+};
 
-  const renderScreen = () => {
-    switch (currentScreen) {
-      case 'LANDING_PAGE':
-        return <LandingPage />;
-      case 'STRATEGIC_DASHBOARD':
-        return <StrategicDashboard />;
-      case 'VARIANCE_DASHBOARD':
-        return <VarianceDashboard />;
-      case 'FLEET_HEALTH_GRID':
-        return <FleetHealthGrid />;
-      case 'INVENTORY_DASHBOARD':
-        return <InventoryDashboard />;
-      case 'WORK_ORDER_QUEUE':
-        return <WorkOrderQueue />;
-      case 'CONFLICT_ALERTS':
-        return <ConflictAlerts />;
-      case 'CAE_BUDGET_PRIORITIZATION':
-        return <CaeBudgetPrioritization />;
-      case 'INCIDENT_REPORTS':
-        return <IncidentReports />;
-      case 'MECHANIC_MOBILE_QUEUE':
-        return <MechanicMobileQueue />;
-      case 'DRIVER_MOBILE_VIEW':
-        return <DriverMobileView />;
-      case 'TENANT_CONFIG':
-        return <TenantConfig />;
-      case 'TRANSLATION_CENTER':
-        return <TranslationCenter />;
-      default:
-        return <StrategicDashboard />;
+const screenToRouteMap: Record<ScreenId, string> = {
+  LANDING_PAGE: '/',
+  STRATEGIC_DASHBOARD: '/dashboard',
+  VARIANCE_DASHBOARD: '/variance',
+  FLEET_HEALTH_GRID: '/vehicles',
+  INVENTORY_DASHBOARD: '/inventory',
+  WORK_ORDER_QUEUE: '/work-orders',
+  CONFLICT_ALERTS: '/conflicts',
+  CAE_BUDGET_PRIORITIZATION: '/cae',
+  INCIDENT_REPORTS: '/incidents',
+  MECHANIC_MOBILE_QUEUE: '/mechanic',
+  DRIVER_MOBILE_VIEW: '/driver',
+  TENANT_CONFIG: '/tenant-config',
+  TRANSLATION_CENTER: '/translation',
+};
+
+const AppLayout: React.FC = () => {
+  const { currentScreen, changeScreen, selectedVehicleId, setSelectedVehicleId } = useFleet();
+  const { dir } = useLocalization();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Synchronize location path with context screen state
+  useEffect(() => {
+    const matchedScreen = routeToScreenMap[location.pathname];
+    if (matchedScreen && matchedScreen !== currentScreen) {
+      changeScreen(matchedScreen);
     }
-  };
+  }, [location.pathname, currentScreen, changeScreen]);
+
+  // Synchronize context screen state with route
+  useEffect(() => {
+    const matchedRoute = screenToRouteMap[currentScreen];
+    if (matchedRoute && matchedRoute !== location.pathname) {
+      navigate(matchedRoute);
+    }
+  }, [currentScreen, navigate, location.pathname]);
+
+  const showNavigation = location.pathname !== '/';
 
   return (
     <div
       dir={dir}
       className="min-h-screen bg-slate-100 flex flex-col font-sans antialiased text-slate-900 transition-all duration-200"
     >
-      {currentScreen !== 'LANDING_PAGE' && <TopBar />}
+      {showNavigation && <TopBar />}
 
       <div className="flex flex-1 overflow-hidden">
-        {currentScreen !== 'LANDING_PAGE' && <Sidebar />}
+        {showNavigation && <Sidebar />}
 
         <main className="flex-1 overflow-y-auto min-w-0 p-4 lg:p-6 pb-12">
-          {renderScreen()}
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/dashboard" element={<StrategicDashboard />} />
+            <Route path="/variance" element={<VarianceDashboard />} />
+            <Route path="/vehicles" element={<FleetHealthGrid />} />
+            <Route path="/inventory" element={<InventoryDashboard />} />
+            <Route path="/work-orders" element={<WorkOrderQueue />} />
+            <Route path="/conflicts" element={<ConflictAlerts />} />
+            <Route path="/cae" element={<CaeBudgetPrioritization />} />
+            <Route path="/incidents" element={<IncidentReports />} />
+            <Route path="/mechanic" element={<MechanicMobileQueue />} />
+            <Route path="/driver" element={<DriverMobileView />} />
+            <Route path="/tenant-config" element={<TenantConfig />} />
+            <Route path="/translation" element={<TranslationCenter />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
         </main>
       </div>
 
@@ -84,10 +120,12 @@ const MainAppContent: React.FC = () => {
 
 export default function App() {
   return (
-    <LocalizationProvider>
-      <FleetProvider>
-        <MainAppContent />
-      </FleetProvider>
-    </LocalizationProvider>
+    <BrowserRouter>
+      <LocalizationProvider>
+        <FleetProvider>
+          <AppLayout />
+        </FleetProvider>
+      </LocalizationProvider>
+    </BrowserRouter>
   );
 }
