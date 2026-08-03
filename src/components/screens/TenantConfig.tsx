@@ -53,6 +53,23 @@ const ACCENT_COLOR_PRESETS = [
   { name: 'Indigo', hex: '#4f46e5', bg: 'bg-indigo-600' },
 ];
 
+// Custom Debounce Hook
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
 export const TenantConfig: React.FC = () => {
   const {
     tenantConfigs,
@@ -78,6 +95,10 @@ export const TenantConfig: React.FC = () => {
   const [viewMode, setViewMode] = useState<'wizard' | 'grid'>('wizard');
   const [wizardStep, setWizardStep] = useState<number>(1);
   const [isCreatingNew, setIsCreatingNew] = useState<boolean>(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'pending' | 'saving'>('saved');
+
+  const debouncedFormData = useDebounce(formData, 2000);
+  const lastSavedDataRef = React.useRef<string>('');
 
   // New Tenant Form State
   const [newTenantData, setNewTenantData] = useState<Omit<TenantConfigType, 'id' | 'lastUpdated'>>({
@@ -106,16 +127,39 @@ export const TenantConfig: React.FC = () => {
     logoUrl: '',
   });
 
-  // Keep form data synchronized when activeTenant changes
+  // Synchronize form state when activeTenant changes
   useEffect(() => {
-    setFormData({
+    const initial = {
       primaryColor: '#4f46e5',
       accentColor: '#059669',
       brandTagline: 'Next-Gen Transit Operations & Telemetry Intelligence',
       logoUrl: '',
       ...activeTenant,
-    });
+    };
+    setFormData(initial);
+    lastSavedDataRef.current = JSON.stringify(initial);
+    setAutoSaveStatus('saved');
   }, [activeTenant]);
+
+  // Mark changes as pending auto-save when user edits formData
+  useEffect(() => {
+    if (lastSavedDataRef.current && JSON.stringify(formData) !== lastSavedDataRef.current) {
+      setAutoSaveStatus('pending');
+    }
+  }, [formData]);
+
+  // Auto-save effect: saves to Supabase 2 seconds after the user stops typing/editing
+  useEffect(() => {
+    if (!lastSavedDataRef.current) return;
+    const currentJson = JSON.stringify(debouncedFormData);
+    if (currentJson !== lastSavedDataRef.current) {
+      setAutoSaveStatus('saving');
+      updateTenantConfig(activeTenant.id, debouncedFormData);
+      lastSavedDataRef.current = currentJson;
+      setAutoSaveStatus('saved');
+      showToast(`Workspace settings for "${debouncedFormData.societyName}" auto-saved to Supabase!`);
+    }
+  }, [debouncedFormData, activeTenant.id, updateTenantConfig]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -140,20 +184,17 @@ export const TenantConfig: React.FC = () => {
     });
   };
 
-  const handleSave = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    updateTenantConfig(activeTenant.id, formData);
-    showToast(`Workspace configuration for "${formData.societyName}" saved & synced with Supabase!`);
-  };
-
   const handleReset = () => {
-    setFormData({
+    const resetData = {
       primaryColor: '#4f46e5',
       accentColor: '#059669',
       brandTagline: 'Next-Gen Transit Operations & Telemetry Intelligence',
       logoUrl: '',
       ...activeTenant,
-    });
+    };
+    setFormData(resetData);
+    lastSavedDataRef.current = JSON.stringify(resetData);
+    setAutoSaveStatus('saved');
     showToast('Changes discarded; restored to last saved state.');
   };
 
@@ -248,6 +289,24 @@ export const TenantConfig: React.FC = () => {
             <KPIBadge type="Configured" />
             <span className="text-xs font-semibold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
               {t('tenant.header_tag', {}, 'Tenant & Workspace Setup Engine')}
+            </span>
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
+              {autoSaveStatus === 'saving' ? (
+                <>
+                  <RefreshCw className="w-3 h-3 text-indigo-600 animate-spin" />
+                  <span className="text-indigo-700 font-medium">Auto-saving...</span>
+                </>
+              ) : autoSaveStatus === 'pending' ? (
+                <>
+                  <Sparkles className="w-3 h-3 text-amber-500 animate-pulse" />
+                  <span className="text-amber-700 font-medium">Auto-save in 2s</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                  <span className="text-emerald-700 font-medium">Auto-save active</span>
+                </>
+              )}
             </span>
           </div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
@@ -529,7 +588,7 @@ export const TenantConfig: React.FC = () => {
         )}
 
         {/* Wizard Form Content */}
-        <form onSubmit={handleSave} className="p-6 space-y-6">
+        <form onSubmit={(e) => e.preventDefault()} className="p-6 space-y-6">
           {/* STEP 1: IDENTITY & REGISTRATION */}
           {wizardStep === 1 && (
             <div className="space-y-6 animate-in fade-in">
@@ -1077,13 +1136,25 @@ export const TenantConfig: React.FC = () => {
                 </button>
               )}
 
-              <button
-                type="submit"
-                className="flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 transition-all cursor-pointer"
-              >
-                <Save className="w-4 h-4" />
-                Save & Sync Supabase
-              </button>
+              {/* Auto-Save Status Badge (replaces manual Save button) */}
+              <div className="flex items-center gap-2 rounded-lg bg-slate-50 border border-slate-200 px-4 py-2.5 text-sm font-medium shadow-2xs">
+                {autoSaveStatus === 'saving' ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 text-indigo-600 animate-spin" />
+                    <span className="text-indigo-700 font-semibold">Syncing auto-save to Supabase...</span>
+                  </>
+                ) : autoSaveStatus === 'pending' ? (
+                  <>
+                    <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
+                    <span className="text-amber-700 font-semibold">Auto-saving in 2s...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span className="text-emerald-700 font-semibold">Auto-saved to Supabase</span>
+                  </>
+                )}
+              </div>
 
               <button
                 type="button"

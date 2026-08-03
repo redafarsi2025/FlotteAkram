@@ -1,7 +1,6 @@
 import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
-import { GoogleGenAI } from '@google/genai';
 import { freeTranslateText } from './src/services/freeTranslationService';
 import { z } from 'zod';
 

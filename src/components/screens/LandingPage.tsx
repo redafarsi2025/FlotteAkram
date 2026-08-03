@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { Suspense, lazy, useState, useMemo } from 'react';
 import { useLocalization } from '../../context/LocalizationContext';
 import { useFleet } from '../../context/FleetContext';
 import { supabase } from '../../lib/supabase';
@@ -15,7 +15,8 @@ import { ComparisonSection } from '../landing/ComparisonSection';
 import { PricingSection } from '../landing/PricingSection';
 import { FaqSection } from '../landing/FaqSection';
 import { ContactModal } from '../landing/ContactModal';
-import { RoiCalculator } from '../landing/RoiCalculator';
+
+const RoiCalculator = lazy(() => import('../landing/RoiCalculator').then(m => ({ default: m.RoiCalculator })));
 
 import {
   TrendingUp,
@@ -482,10 +483,10 @@ export const LandingPage: React.FC = () => {
             </div>
             <div className="rounded-xl bg-white/5 border border-white/10 p-3 backdrop-blur-xs">
               <span className="text-[10px] uppercase text-indigo-300 font-bold block tracking-wider">
-                {currentLanguage === 'ar' ? 'التنبؤ بالأعطال (R1)' : currentLanguage === 'en' ? 'Predictive Alert Rate' : 'Résolution Prédictive'}
+                {currentLanguage === 'ar' ? 'محرك القرار' : currentLanguage === 'en' ? 'Decision Engine' : 'Moteur de Décision'}
               </span>
               <span className="text-sm font-extrabold text-white mt-0.5 block">
-                99.4% Precision
+                {currentLanguage === 'ar' ? 'صيغة CAE شفافة' : currentLanguage === 'en' ? 'Transparent CAE Formula' : 'Formule CAE Transparente'}
               </span>
             </div>
             <div className="hidden sm:block rounded-xl bg-white/5 border border-white/10 p-3 backdrop-blur-xs">
@@ -499,43 +500,48 @@ export const LandingPage: React.FC = () => {
           </div>
 
           {/* Action Buttons with high visibility */}
-          <div className="pt-4 flex flex-col sm:flex-row flex-wrap gap-4 items-stretch sm:items-center">
-            <button
-              onClick={() => changeScreen('STRATEGIC_DASHBOARD')}
-              className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold shadow-lg shadow-indigo-900/30 transition-all cursor-pointer group"
-            >
-              {currentT('exploreApp')}
-              <ArrowRight className={`h-4 w-4 transform transition-transform ${dir === 'rtl' ? 'rotate-180' : 'group-hover:translate-x-1'}`} />
-            </button>
+          <div className="pt-4 space-y-3">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-4 items-stretch sm:items-center">
+              <button
+                onClick={() => changeScreen('STRATEGIC_DASHBOARD')}
+                className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold shadow-lg shadow-indigo-900/30 transition-all cursor-pointer group"
+              >
+                {currentT('exploreApp')}
+                <ArrowRight className={`h-4 w-4 transform transition-transform ${dir === 'rtl' ? 'rotate-180' : 'group-hover:translate-x-1'}`} />
+              </button>
 
-            <button
-              onClick={() => {
-                setAuthModalIsSignUp(true);
-                setShowAuthModal(true);
-              }}
-              className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg shadow-emerald-900/30 transition-all cursor-pointer"
-            >
-              <UserPlus className="h-4 w-4" />
-              {currentLanguage === 'ar' ? 'إنشاء حساب جديد (Tenant)' : currentLanguage === 'en' ? 'Sign Up / Create Account' : 'Créer un compte / S\'enregistrer'}
-            </button>
+              <button
+                onClick={() => setShowContactModal(true)}
+                className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg shadow-emerald-900/30 transition-all cursor-pointer"
+              >
+                <Calendar className="h-4 w-4 text-white" />
+                {currentLanguage === 'ar' ? 'احجز موعد عرض تجريبي' : currentLanguage === 'en' ? 'Request a Live Demo' : 'Prendre Rendez-vous'}
+              </button>
+            </div>
 
-            <button
-              onClick={() => setShowContactModal(true)}
-              className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-slate-600 text-white text-sm font-bold transition-all cursor-pointer"
-            >
-              <Calendar className="h-4 w-4 text-indigo-400" />
-              {currentLanguage === 'ar' ? 'احجز موعد عرض تجريبي' : currentLanguage === 'en' ? 'Request a Live Demo' : 'Prendre Rendez-vous'}
-            </button>
+            {/* Secondary Action Links */}
+            <div className="pt-1 flex flex-wrap items-center gap-4 text-xs text-slate-300">
+              <button
+                onClick={() => {
+                  setAuthModalIsSignUp(true);
+                  setShowAuthModal(true);
+                }}
+                className="inline-flex items-center gap-1.5 hover:text-white underline underline-offset-4 decoration-indigo-400/50 hover:decoration-indigo-400 transition-all cursor-pointer"
+              >
+                <UserPlus className="h-3.5 w-3.5 text-indigo-400" />
+                <span>{currentLanguage === 'ar' ? 'إنشاء حساب جديد (Tenant)' : currentLanguage === 'en' ? 'Sign Up / Create Account' : 'Créer un compte / S\'enregistrer'}</span>
+              </button>
 
-            <button
-              onClick={() => {
-                setIsRoleSelectorOpen(true);
-              }}
-              className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-700 text-slate-300 text-xs font-bold transition-all cursor-pointer"
-            >
-              <Building2 className="h-4 w-4" />
-              {currentLanguage === 'ar' ? 'تبديل الأدوار والمسؤوليات' : currentLanguage === 'en' ? 'Simulate Role Dashboard' : 'Simuler un Rôle Métier'}
-            </button>
+              <span className="text-slate-600">•</span>
+
+              <button
+                onClick={() => setIsRoleSelectorOpen(true)}
+                className="inline-flex items-center gap-1.5 hover:text-white underline underline-offset-4 decoration-indigo-400/50 hover:decoration-indigo-400 transition-all cursor-pointer"
+              >
+                <Building2 className="h-3.5 w-3.5 text-indigo-400" />
+                <span>{currentLanguage === 'ar' ? 'تبديل الأدوار والمسؤوليات' : currentLanguage === 'en' ? 'Simulate Role Dashboard' : 'Simuler un Rôle Métier'}</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -723,75 +729,79 @@ export const LandingPage: React.FC = () => {
       {/* 7. INTERACTIVE PRODUCT WORKFLOW SIMULATOR */}
       <DemoSection currentLanguage={currentLanguage} />
 
-      {/* 8. PREDICTIVE AI FEATURES SHOWCASE */}
-      <div className="rounded-3xl border border-indigo-500 bg-slate-950 text-white p-6 sm:p-8 lg:p-12 relative overflow-hidden shadow-xl space-y-6">
+      {/* 8. DETERMINISTIC DECISION ENGINE SHOWCASE (PHASE 1) */}
+      <div className="rounded-3xl border border-indigo-500/80 bg-slate-950 text-white p-6 sm:p-8 lg:p-12 relative overflow-hidden shadow-xl space-y-6">
         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -z-10" />
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -z-10" />
 
-        <div className="space-y-2 text-center max-w-2xl mx-auto">
+        <div className="space-y-3 text-center max-w-3xl mx-auto">
           <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase bg-indigo-500/20 text-indigo-300 px-3 py-1 rounded-full">
-            <Sparkles className="h-3 w-3 text-indigo-400 animate-pulse" />
-            NextTransit AI Co-Pilot
+            <Zap className="h-3 w-3 text-indigo-400" />
+            NextTransit Decision Engine • Phase 1
           </span>
           <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
-            {currentLanguage === 'ar' ? 'ذكاء اصطناعي سيادي مبني لقرارات تشغيلية واعية' : currentLanguage === 'en' ? 'Sovereign Generative AI Built for Complex Fleet Decisions' : 'L\'Intelligence Artificielle Souveraine pour vos Décisions'}
+            {currentLanguage === 'ar' ? 'محرك قرار حتمي وشفاف وقابل للتدقيق' : currentLanguage === 'en' ? 'A Deterministic, Transparent, Auditable Decision Engine' : 'Un Moteur de Décision Déterministe, Transparent et Vérifiable'}
           </h2>
-          <p className="text-xs text-slate-400">
-            {currentLanguage === 'ar' ? 'مساعد ذكي يحلل بيانات التتبع في الصحراء والمناخ الجبلي للتنبؤ بالأعطال وقطع الغيار.' : currentLanguage === 'en' ? 'Our customized LLM identifies supply chain anomalies, parts wear, and translates multilingual notes.' : 'Analysez vos anomalies de facturation, anticipez vos casses moteurs et traduisez vos rapports automatiquement.'}
+          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-normal">
+            {currentLanguage === 'ar' 
+              ? 'كل توصية تعتمد على قواعد واضحة (R1-R7) وقابلة للتدقيق بدون صندوق أسود. المرحلة 2 (الموديلات الإحصائية) والمرحلة 3 (تعلم الآلة) تأتي بعد تجميع بيانات الإنتاج.'
+              : currentLanguage === 'en'
+              ? 'Every recommendation is based on clear, auditable R1-R7 rules with no black box. Phase 2 (statistical models) and Phase 3 (machine learning) arrive once production data is gathered.'
+              : 'Chaque recommandation est basée sur des règles claires (R1-R7), auditables et sans boîte noire. La phase 2 (modèles statistiques) et la phase 3 (machine learning) arrivent une fois les données de production collectées.'}
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-4">
           
-          {/* AI Feature 1 */}
+          {/* Feature 1 */}
           <div className="bg-white/5 border border-white/10 p-5 rounded-2xl space-y-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-500/20 text-indigo-300">
-              <Sparkles className="h-4.5 w-4.5" />
+              <FileText className="h-4.5 w-4.5" />
             </div>
             <h4 className="text-xs font-extrabold text-white">
-              {currentLanguage === 'ar' ? 'التقارير الذكية التنبؤية' : currentLanguage === 'en' ? 'Smart Executive Reports' : 'Rapports IA Exécutifs'}
+              {currentLanguage === 'ar' ? 'تقارير تنفيذية حتمية' : currentLanguage === 'en' ? 'Deterministic Executive Reports' : 'Rapports Exécutifs Déterministes'}
             </h4>
             <p className="text-[11px] text-slate-400 leading-normal">
-              {currentLanguage === 'ar' ? 'تحليل فوري لميزانيات الورشات وتوليد ملخص تنفيذي دقيق للمديرين.' : currentLanguage === 'en' ? 'Generates instant brief reports on monthly cost variance and maintenance output.' : 'Génère un résumé textuel clair des variations budgétaires et des goulots d\'étranglement.'}
+              {currentLanguage === 'ar' ? 'ملخص دقيق للميزانيات وحساب الفروقات التشغيلية عبر محرك القواعد R4-R7.' : currentLanguage === 'en' ? 'Generates clear summaries of budget variances and operational bottlenecks calculated via R4-R7 rules engine.' : 'Génère un résumé clair des variations budgétaires et des goulots d\'étranglement calculé par le moteur de règles R4-R7.'}
             </p>
           </div>
 
-          {/* AI Feature 2 */}
+          {/* Feature 2 */}
           <div className="bg-white/5 border border-white/10 p-5 rounded-2xl space-y-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-500/20 text-indigo-300">
               <Wrench className="h-4.5 w-4.5" />
             </div>
             <h4 className="text-xs font-extrabold text-white">
-              {currentLanguage === 'ar' ? 'التنبؤ الوقائي بتآكل الفلاتر' : currentLanguage === 'en' ? 'Predictive Sand Wear' : 'Maintenance Prédictive'}
+              {currentLanguage === 'ar' ? 'حساب وقائي للتآكل' : currentLanguage === 'en' ? 'Predictive Wear Calculation' : 'Calcul Prédictif d\'Usure'}
             </h4>
             <p className="text-[11px] text-slate-400 leading-normal">
-              {currentLanguage === 'ar' ? 'حساب معدل تآكل فلاتر الهواء والزيوت بناءً على المناخ الصحراوي الحار.' : currentLanguage === 'en' ? 'Predicts exact sand wear rates and oil thinning on remote National Highways.' : 'Calcule le niveau de dégradation des lubrifiants selon l\'indice d\'exposition au sable.'}
+              {currentLanguage === 'ar' ? 'حساب معدل تآكل الزيوت والفلاتر بناءً على قواعد تشغيلية صحراوية.' : currentLanguage === 'en' ? 'Calculates oil and filter degradation rates based on business rules for desert and climate exposure.' : 'Calcule le niveau de dégradation des lubrifiants selon des règles métier d\'exposition au sable et au climat.'}
             </p>
           </div>
 
-          {/* AI Feature 3 */}
+          {/* Feature 3 */}
           <div className="bg-white/5 border border-white/10 p-5 rounded-2xl space-y-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-500/20 text-indigo-300">
               <Globe className="h-4.5 w-4.5" />
             </div>
             <h4 className="text-xs font-extrabold text-white">
-              {currentLanguage === 'ar' ? 'ترجمة آلية للمصطلحات الميكانيكية' : currentLanguage === 'en' ? 'AI Mechanical Translation' : 'Traduction Technique IA'}
+              {currentLanguage === 'ar' ? 'ترجمة وتوحيد المصطلحات الفنية' : currentLanguage === 'en' ? 'Technical Translation & Standard' : 'Traduction Technique & Normalisation'}
             </h4>
             <p className="text-[11px] text-slate-400 leading-normal">
-              {currentLanguage === 'ar' ? 'ترجمة فورية للتقارير الفنية المكتوبة بالعامية أو الفرنسية إلى لغات النظام.' : currentLanguage === 'en' ? 'Translates driver notes instantly between Arabic, French, and English.' : 'Traduit instantanément les notes de panne rédigées en arabe dialectal ou français technique.'}
+              {currentLanguage === 'ar' ? 'ترجمة وتوحيد التقارير الفنية المكتوبة بالعامية أو الفرنسية إلى لغات النظام.' : currentLanguage === 'en' ? 'Translates and normalizes driver fault logs between dialectal Arabic and technical French into standard codes.' : 'Traduite et normalise automatiquement les notes de panne rédigées en arabe dialectal ou français technique vers le référentiel métier.'}
             </p>
           </div>
 
-          {/* AI Feature 4 */}
+          {/* Feature 4 */}
           <div className="bg-white/5 border border-white/10 p-5 rounded-2xl space-y-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-500/20 text-indigo-300">
               <CheckCircle2 className="h-4.5 w-4.5" />
             </div>
             <h4 className="text-xs font-extrabold text-white">
-              {currentLanguage === 'ar' ? 'توصيات ذكية للمخزن والشراء' : currentLanguage === 'en' ? 'Procurement Recommendations' : 'Recommandations d\'Achat'}
+              {currentLanguage === 'ar' ? 'توصيات الشراء المؤتمتة' : currentLanguage === 'en' ? 'Automated Procurement Rules' : 'Recommandations d\'Achat Automatisées'}
             </h4>
             <p className="text-[11px] text-slate-400 leading-normal">
-              {currentLanguage === 'ar' ? 'اكتشاف الأسعار غير الطبيعية لقطع الغيار واقتراح موردين محليين بدلاء.' : currentLanguage === 'en' ? 'Detects pricing anomalies on invoices and suggests optimal local parts partners.' : 'Détecte les anomalies de tarification et propose des fournisseurs alternatifs approuvés.'}
+              {currentLanguage === 'ar' ? 'كشف انخفاض المباشر للمخزون واستخراج الفروقات السعرية لتفعيل أمر الشراء R3.' : currentLanguage === 'en' ? 'Detects inventory buffer breaches and price variance against benchmark rates to trigger automated R3 purchase orders.' : 'Détecte les dépassements de seuil de stock et les écarts de prix par rapport au barème de référence pour déclencher le réapprovisionnement R3.'}
             </p>
           </div>
 
@@ -831,81 +841,107 @@ export const LandingPage: React.FC = () => {
       </div>
 
       {/* 9b. ADVANCED ROI CALCULATOR COMPONENT */}
-      <RoiCalculator 
-        currentLanguage={currentLanguage} 
-        onExploreDemo={() => changeScreen('STRATEGIC_DASHBOARD')} 
-      />
+      <Suspense fallback={<div className="h-40" />}>
+        <RoiCalculator 
+          currentLanguage={currentLanguage} 
+          onExploreDemo={() => changeScreen('STRATEGIC_DASHBOARD')} 
+        />
+      </Suspense>
 
       {/* 10. COMPARISON MATRIX (EXCEL vs LEGACY ERP vs NEXTTRANSIT) */}
       <ComparisonSection currentLanguage={currentLanguage} />
 
-      {/* 11. CUSTOMER TESTIMONIALS */}
+      {/* 11. PILOT PROGRAM (REPLACES TESTIMONIALS) */}
       <div className="space-y-8 py-4">
-        <div className="space-y-2 text-center max-w-2xl mx-auto">
-          <span className="text-[10px] uppercase text-indigo-600 font-extrabold tracking-wider block">
-            {currentLanguage === 'ar' ? 'آراء شركائنا في النجاح' : currentLanguage === 'en' ? 'CLIENT TESTIMONIALS' : 'ILS PARLENT DE NOUS'}
+        <div className="space-y-3 text-center max-w-3xl mx-auto">
+          <span className="text-[10px] uppercase text-indigo-600 font-extrabold tracking-wider bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full inline-block">
+            {currentLanguage === 'ar' ? 'البرنامج التجريبي - المرحلة 0' : currentLanguage === 'en' ? 'PHASE 0 PILOT PROGRAM' : 'PROGRAMME PILOTE PHASE 0'}
           </span>
           <h2 className="text-xl sm:text-2xl font-extrabold text-slate-950 tracking-tight">
-            {currentLanguage === 'ar' ? 'مؤسسات جزائرية كبرى تثق في محركنا اللوجستي' : currentLanguage === 'en' ? 'Trusted by Prominent Algerian Logistics & BTP Directors' : 'Les Leaders du Fret & BTP nous font confiance'}
+            {currentLanguage === 'ar' ? 'انضم إلى برنامجنا التجريبي' : currentLanguage === 'en' ? 'Join Our Pilot Program' : 'Rejoignez notre programme pilote'}
           </h2>
+          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
+            {currentLanguage === 'ar' 
+              ? 'نيكست ترانزيت في مرحلة الإطلاق. أول 3 أساطيل تنضم إلى البرنامج التجريبي تستفيد من تجربة مجانية لمدة 30 يومًا على بياناتها الخاصة، مع هدف تعاقدي لتقليل تكاليف التوقف بنسبة 15%.'
+              : currentLanguage === 'en'
+              ? 'NextTransit is in launch phase. The first 3 fleets joining the pilot program get a free 30-day POC on their own data, with a contractual target of -15% downtime costs.'
+              : 'NextTransit est en phase de lancement. Les 3 premières flottes qui rejoignent le programme pilote bénéficient d\'un POC gratuit de 30 jours sur leurs propres données, avec un objectif contractualisé de -15% de coûts d\'immobilisation.'}
+          </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           
-          {/* Testimonial 1 */}
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 flex flex-col justify-between space-y-4">
-            <p className="text-xs text-slate-600 leading-relaxed italic">
-              {currentLanguage === 'ar'
-                ? '"كنا نخسر ملايين الدينارات بسبب التوقف المفاجئ لشاحناتنا في الجنوب الصحراوي لعدم توفر فلاتر الغبار. بفضل القاعدة R3 ونظام الحجز الآلي لـ NextTransit، صفرنا فترات الانتظار ووفرنا 28% من نفقات الورشة."'
-                : '"Grâce au moteur de décision R3, nous avons éliminé les ruptures de stock de filtres à air et de plaquettes de frein pour nos engins opérant à Hassi Messaoud. Notre taux de disponibilité des camions est passé de 72% à 95%."'}
-            </p>
-            <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
-              <div className="h-9 w-9 rounded-full bg-indigo-100 flex items-center justify-center font-bold text-xs text-indigo-700">
-                KB
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-slate-900">Kamel Benyoucef</h4>
-                <p className="text-[10px] text-slate-500">Directeur Logistique, Cosider Transport • Alger</p>
-              </div>
+          {/* Card 1 */}
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 flex flex-col justify-between space-y-4 shadow-xs hover:border-indigo-200 transition-all">
+            <div className="space-y-2">
+              <span className="text-[10px] font-extrabold text-indigo-600 uppercase tracking-wider block">
+                {currentLanguage === 'ar' ? '1. تدقيق سريع' : currentLanguage === 'en' ? '1. Overnight Audit' : '1. Audit Overnight'}
+              </span>
+              <h3 className="text-sm font-extrabold text-slate-900">
+                {currentLanguage === 'ar' ? 'أرسل ملف إكسل الخاص بك الليلة' : currentLanguage === 'en' ? 'Send your Excel export tonight' : 'Envoyez votre export Excel ce soir'}
+              </h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                {currentLanguage === 'ar' ? 'تحليل ليلي، وتقرير تفصيلي خلال 24 ساعة.' : currentLanguage === 'en' ? 'Overnight analysis, full report within 24h.' : 'Analyse overnight, rapport sous 24h.'}
+              </p>
+            </div>
+            <div className="pt-3 border-t border-slate-100 flex items-center gap-2 text-[11px] font-semibold text-indigo-600">
+              <CheckCircle2 className="h-4 w-4" />
+              <span>{currentLanguage === 'ar' ? 'رأي فوري' : currentLanguage === 'en' ? 'Instant insights' : 'Diagnostic rapide'}</span>
             </div>
           </div>
 
-          {/* Testimonial 2 */}
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 flex flex-col justify-between space-y-4">
-            <p className="text-xs text-slate-600 leading-relaxed italic">
-              {currentLanguage === 'ar'
-                ? '"المطابقة التامة للنظام مع المخطط الوطني للمحاسبة (SCF) مكنتنا من جرد نفقات الورشات وتعيين تكلفة الكيلومتر بدقة عبر 58 ولاية. التقارير المالية أصبحت جاهزة للتدقيق الضريبي في ثوانٍ."'
-                : '"La conformité comptable au SCF algérien est un avantage énorme. Toutes les réparations et heures de main-d\'œuvre sont automatiquement créditées dans notre journal financier de classe 6, rendant la liasse fiscale instantanée."'}
-            </p>
-            <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
-              <div className="h-9 w-9 rounded-full bg-emerald-100 flex items-center justify-center font-bold text-xs text-emerald-700">
-                MC
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-slate-900">Mourad Chaouch</h4>
-                <p className="text-[10px] text-slate-500">Directeur Financier, Entreprise Publique de Fret • Oran</p>
-              </div>
+          {/* Card 2 */}
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 flex flex-col justify-between space-y-4 shadow-xs hover:border-indigo-200 transition-all">
+            <div className="space-y-2">
+              <span className="text-[10px] font-extrabold text-indigo-600 uppercase tracking-wider block">
+                {currentLanguage === 'ar' ? '2. عرض مخصص' : currentLanguage === 'en' ? '2. Custom Demo' : '2. Démo Sur-Mesure'}
+              </span>
+              <h3 className="text-sm font-extrabold text-slate-900">
+                {currentLanguage === 'ar' ? 'عرض توضيحي على بياناتك الخاصة' : currentLanguage === 'en' ? 'Demo on your own data' : 'Démo sur vos propres données'}
+              </h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                {currentLanguage === 'ar' ? 'بدون بيانات وهمية، أسطولك الحقيقي ومساراتك.' : currentLanguage === 'en' ? 'No dummy data, your actual fleet and routes.' : 'Pas de données fictives, votre flotte réelle.'}
+              </p>
+            </div>
+            <div className="pt-3 border-t border-slate-100 flex items-center gap-2 text-[11px] font-semibold text-indigo-600">
+              <CheckCircle2 className="h-4 w-4" />
+              <span>{currentLanguage === 'ar' ? 'بيانات حقيقية' : currentLanguage === 'en' ? 'Real data' : 'Souveraineté des données'}</span>
             </div>
           </div>
 
-          {/* Testimonial 3 */}
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 flex flex-col justify-between space-y-4">
-            <p className="text-xs text-slate-600 leading-relaxed italic">
-              {currentLanguage === 'ar'
-                ? '"القاعدة R1 حمت سائقينا من مخاطر الأعطال في منعرجات جرجرة والأطلس البليدي. النظام يسحب تلقائياً الشاحنة غير الآمنة من الرحلة بمجرد كشف كود خطأ حرج بالفرامل. أمان لا يقدر بثمن."'
-                : '"La règle R1 d\'arrêt d\'urgence sur défaut diagnostic critique a sauvé nos chauffeurs d\'accidents majeurs sur les cols glacés de l\'Atlas. Le logiciel bloque instantanément les départs à haut risque."'}
-            </p>
-            <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
-              <div className="h-9 w-9 rounded-full bg-amber-100 flex items-center justify-center font-bold text-xs text-amber-700">
-                YA
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-slate-900">Yacine Amrani</h4>
-                <p className="text-[10px] text-slate-500">Responsable HSE, Transport Hydrocarbures • Constantine</p>
-              </div>
+          {/* Card 3 */}
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 flex flex-col justify-between space-y-4 shadow-xs hover:border-indigo-200 transition-all">
+            <div className="space-y-2">
+              <span className="text-[10px] font-extrabold text-indigo-600 uppercase tracking-wider block">
+                {currentLanguage === 'ar' ? '3. تجربة معتمدة' : currentLanguage === 'en' ? '3. Contracted POC' : '3. POC Contractualisé'}
+              </span>
+              <h3 className="text-sm font-extrabold text-slate-900">
+                {currentLanguage === 'ar' ? 'تجربة مجانية لمدة 30 يومًا' : currentLanguage === 'en' ? 'Free 30-day POC' : 'POC 30 jours gratuit'}
+              </h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                {currentLanguage === 'ar' ? '10 مركبات، هدف خفض تكاليف التوقف بنسبة 15%.' : currentLanguage === 'en' ? '10 vehicles, target -15% downtime costs.' : '10 véhicules, objectif -15% coûts d\'immobilisation.'}
+              </p>
+            </div>
+            <div className="pt-3 border-t border-slate-100 flex items-center gap-2 text-[11px] font-semibold text-emerald-600">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              <span>{currentLanguage === 'ar' ? 'مردود مضمون' : currentLanguage === 'en' ? 'Target guaranteed' : 'Objectif mesurable'}</span>
             </div>
           </div>
 
+        </div>
+
+        {/* CTA Button */}
+        <div className="text-center pt-2">
+          <button
+            onClick={() => setShowContactModal(true)}
+            className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg shadow-emerald-900/20 transition-all cursor-pointer"
+          >
+            <Calendar className="h-4.5 w-4.5 text-white" />
+            <span>
+              {currentLanguage === 'ar' ? 'انضم إلى البرنامج التجريبي (POC مجاني)' : currentLanguage === 'en' ? 'Join the Pilot Program (Free POC)' : 'Rejoindre le Programme Pilote (POC Gratuit)'}
+            </span>
+            <ArrowRight className={`h-4 w-4 transform ${dir === 'rtl' ? 'rotate-180' : ''}`} />
+          </button>
         </div>
       </div>
 

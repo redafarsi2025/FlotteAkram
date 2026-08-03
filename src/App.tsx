@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { FleetProvider, useFleet } from './context/FleetContext';
 import { LocalizationProvider, useLocalization } from './context/LocalizationContext';
@@ -7,20 +7,28 @@ import { Sidebar } from './components/common/Sidebar';
 import { VehicleDetailModal } from './components/vehicle/VehicleDetailModal';
 import { routeToScreenMap } from './routes/routeMap';
 
-// Import all 12 screen components
+// LandingPage loaded statically as default route
 import { LandingPage } from './components/screens/LandingPage';
-import { StrategicDashboard } from './components/screens/StrategicDashboard';
-import { VarianceDashboard } from './components/screens/VarianceDashboard';
-import { FleetHealthGrid } from './components/screens/FleetHealthGrid';
-import { InventoryDashboard } from './components/screens/InventoryDashboard';
-import { WorkOrderQueue } from './components/screens/WorkOrderQueue';
-import { ConflictAlerts } from './components/screens/ConflictAlerts';
-import { CaeBudgetPrioritization } from './components/screens/CaeBudgetPrioritization';
-import { IncidentReports } from './components/screens/IncidentReports';
-import { MechanicMobileQueue } from './components/screens/MechanicMobileQueue';
-import { DriverMobileView } from './components/screens/DriverMobileView';
-import { TenantConfig } from './components/screens/TenantConfig';
-import { TranslationCenter } from './components/screens/TranslationCenter';
+
+// Lazy loaded screen components for route-based bundle splitting
+const StrategicDashboard = lazy(() => import('./components/screens/StrategicDashboard').then(m => ({ default: m.StrategicDashboard })));
+const VarianceDashboard = lazy(() => import('./components/screens/VarianceDashboard').then(m => ({ default: m.VarianceDashboard })));
+const FleetHealthGrid = lazy(() => import('./components/screens/FleetHealthGrid').then(m => ({ default: m.FleetHealthGrid })));
+const InventoryDashboard = lazy(() => import('./components/screens/InventoryDashboard').then(m => ({ default: m.InventoryDashboard })));
+const WorkOrderQueue = lazy(() => import('./components/screens/WorkOrderQueue').then(m => ({ default: m.WorkOrderQueue })));
+const ConflictAlerts = lazy(() => import('./components/screens/ConflictAlerts').then(m => ({ default: m.ConflictAlerts })));
+const CaeBudgetPrioritization = lazy(() => import('./components/screens/CaeBudgetPrioritization').then(m => ({ default: m.CaeBudgetPrioritization })));
+const IncidentReports = lazy(() => import('./components/screens/IncidentReports').then(m => ({ default: m.IncidentReports })));
+const MechanicMobileQueue = lazy(() => import('./components/screens/MechanicMobileQueue').then(m => ({ default: m.MechanicMobileQueue })));
+const DriverMobileView = lazy(() => import('./components/screens/DriverMobileView').then(m => ({ default: m.DriverMobileView })));
+const TenantConfig = lazy(() => import('./components/screens/TenantConfig').then(m => ({ default: m.TenantConfig })));
+const TranslationCenter = lazy(() => import('./components/screens/TranslationCenter').then(m => ({ default: m.TranslationCenter })));
+
+const RouteFallback: React.FC = () => (
+  <div className="flex items-center justify-center h-full w-full py-24">
+    <div className="h-8 w-8 rounded-full border-2 border-slate-300 border-t-slate-600 animate-spin" />
+  </div>
+);
 
 const AppLayout: React.FC = () => {
   const { currentScreen, changeScreen, selectedVehicleId, setSelectedVehicleId } = useFleet();
@@ -48,22 +56,24 @@ const AppLayout: React.FC = () => {
         {showNavigation && <Sidebar />}
 
         <main className="flex-1 overflow-y-auto min-w-0 p-4 lg:p-6 pb-12">
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/dashboard" element={<StrategicDashboard />} />
-            <Route path="/variance" element={<VarianceDashboard />} />
-            <Route path="/vehicles" element={<FleetHealthGrid />} />
-            <Route path="/inventory" element={<InventoryDashboard />} />
-            <Route path="/work-orders" element={<WorkOrderQueue />} />
-            <Route path="/conflicts" element={<ConflictAlerts />} />
-            <Route path="/cae" element={<CaeBudgetPrioritization />} />
-            <Route path="/incidents" element={<IncidentReports />} />
-            <Route path="/mechanic" element={<MechanicMobileQueue />} />
-            <Route path="/driver" element={<DriverMobileView />} />
-            <Route path="/tenant-config" element={<TenantConfig />} />
-            <Route path="/translation" element={<TranslationCenter />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          <Suspense fallback={<RouteFallback />}>
+            <Routes>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/dashboard" element={<StrategicDashboard />} />
+              <Route path="/variance" element={<VarianceDashboard />} />
+              <Route path="/vehicles" element={<FleetHealthGrid />} />
+              <Route path="/inventory" element={<InventoryDashboard />} />
+              <Route path="/work-orders" element={<WorkOrderQueue />} />
+              <Route path="/conflicts" element={<ConflictAlerts />} />
+              <Route path="/cae" element={<CaeBudgetPrioritization />} />
+              <Route path="/incidents" element={<IncidentReports />} />
+              <Route path="/mechanic" element={<MechanicMobileQueue />} />
+              <Route path="/driver" element={<DriverMobileView />} />
+              <Route path="/tenant-config" element={<TenantConfig />} />
+              <Route path="/translation" element={<TranslationCenter />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         </main>
       </div>
 

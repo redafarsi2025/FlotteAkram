@@ -9,46 +9,43 @@ export const LogosSection: React.FC<LogosSectionProps> = ({ currentLanguage }) =
   const isAr = currentLanguage === 'ar';
   
   const partnerTitle = isAr
-    ? 'الشركاء الاستراتيجيون والمؤسسات المعتمدة في الجزائر'
+    ? 'مشروع موجه وموثق بدقة'
     : currentLanguage === 'en'
-    ? 'Strategic Partners & Certified Organizations in Algeria'
-    : 'Partenaires Stratégiques & Organismes Certifiés en Algérie';
+    ? 'Academically Supervised & Rigorously Documented'
+    : 'Un projet encadré et rigoureusement documenté';
 
   const certTitle = isAr
-    ? 'معايير الامتثال والجودة الوطنية'
+    ? 'معايير الجودة والمنهجية'
     : currentLanguage === 'en'
-    ? 'National Compliance & Quality Standards'
-    : 'Normes de Conformité & Qualité Nationale';
+    ? 'Methodology & Data Quality Standards'
+    : 'Normes de Méthodologie & Qualité';
 
-  const companies = [
-    { name: 'Cosider Group', sector: 'BTP & Construction' },
-    { name: 'Sonatrach', sector: 'Hydrocarbures & Énergie' },
-    { name: 'Naftal', sector: 'Distribution & Carburant' },
-    { name: 'Sonelgaz', sector: 'Énergie & Logistique' },
-    { name: 'SNTF', sector: 'Transport Ferroviaire' },
-    { name: 'Logitrans', sector: 'Transport Routier & Fret' },
+  const credibility = [
+    { name: 'ESGEN Incubator', sector: 'Structure d\'accompagnement 2025/2026' },
+    { name: 'Pr. Rafika Tabti', sector: 'Encadrement BI & IT' },
+    { name: 'Pr. Leila Douidene', sector: 'Encadrement Logistique & Supply Chain' },
+    { name: 'ONS / joradp.dz', sector: 'Données de marché sourcées et vérifiables' },
   ];
 
   const certs = [
-    { code: 'DZD Compliance', label: 'SCF Standard & Facturation locale' },
-    { code: 'ISO 9001:2015', label: 'Management de la Qualité de Flotte' },
-    { code: 'ANDI / API', label: 'Agrément investissements industriels' },
+    { code: 'Matrice de Confiance', label: 'Chaque donnée classée VÉRIFIÉ / ESTIMÉ / BENCHMARK' },
+    { code: 'SCF Ready', label: 'Architecture conforme au plan comptable algérien' },
   ];
 
   return (
     <div className="py-8 border-y border-slate-200/60 bg-slate-50/50 rounded-3xl space-y-8">
       <div className="text-center space-y-1">
         <span className="text-[10px] uppercase text-indigo-600 font-extrabold tracking-wider block">
-          {isAr ? 'الثقة والامتثال' : currentLanguage === 'en' ? 'TRUST & COMPLIANCE' : 'CONFIANCE & CONFORMITÉ'}
+          {isAr ? 'الثقة والشفافية' : currentLanguage === 'en' ? 'TRUST & TRANSPARENCY' : 'CONFIANCE & TRANSPARENCE'}
         </span>
         <h3 className="text-xs font-bold text-slate-500 font-sans">
           {partnerTitle}
         </h3>
       </div>
 
-      {/* Trust Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-6 px-6 items-center">
-        {companies.map((co, index) => (
+      {/* Credibility Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 px-6 items-center">
+        {credibility.map((co, index) => (
           <div 
             key={index} 
             className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white border border-slate-200/50 hover:border-indigo-100 hover:shadow-xs transition duration-200 text-center"
@@ -63,7 +60,7 @@ export const LogosSection: React.FC<LogosSectionProps> = ({ currentLanguage }) =
         ))}
       </div>
 
-      {/* Certifications Row */}
+      {/* Method Badges Row */}
       <div className="flex flex-wrap items-center justify-center gap-6 px-6 pt-2 border-t border-slate-200/30">
         <span className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
           <Award className="h-3.5 w-3.5 text-indigo-500" />
