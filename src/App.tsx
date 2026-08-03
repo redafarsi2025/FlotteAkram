@@ -23,6 +23,7 @@ const MechanicMobileQueue = lazy(() => import('./components/screens/MechanicMobi
 const DriverMobileView = lazy(() => import('./components/screens/DriverMobileView').then(m => ({ default: m.DriverMobileView })));
 const TenantConfig = lazy(() => import('./components/screens/TenantConfig').then(m => ({ default: m.TenantConfig })));
 const TranslationCenter = lazy(() => import('./components/screens/TranslationCenter').then(m => ({ default: m.TranslationCenter })));
+const SafetyPerformance = lazy(() => import('./components/screens/SafetyPerformance').then(m => ({ default: m.SafetyPerformance })));
 
 const RouteFallback: React.FC = () => (
   <div className="flex items-center justify-center h-full w-full py-24">
@@ -71,6 +72,7 @@ const AppLayout: React.FC = () => {
               <Route path="/driver" element={<DriverMobileView />} />
               <Route path="/tenant-config" element={<TenantConfig />} />
               <Route path="/translation" element={<TranslationCenter />} />
+              <Route path="/safety" element={<SafetyPerformance />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>

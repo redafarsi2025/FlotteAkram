@@ -83,6 +83,12 @@ export const Sidebar: React.FC = () => {
       description: t('nav.incident_desc', {}, 'R6 driver reports & OBD fault linkage'),
     },
     {
+      id: 'SAFETY_PERFORMANCE',
+      label: t('nav.safety_performance', {}, 'Safety Performance'),
+      icon: ShieldAlert,
+      description: t('nav.safety_desc', {}, 'Harsh braking, acceleration & driver safety scores'),
+    },
+    {
       id: 'MECHANIC_MOBILE_QUEUE',
       label: t('nav.mechanic_mobile_queue', {}, 'Mechanic Task Queue'),
       icon: Smartphone,

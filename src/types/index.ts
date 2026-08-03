@@ -30,7 +30,8 @@ export type ScreenId =
   | 'MECHANIC_MOBILE_QUEUE'
   | 'DRIVER_MOBILE_VIEW'
   | 'TENANT_CONFIG'
-  | 'TRANSLATION_CENTER';
+  | 'TRANSLATION_CENTER'
+  | 'SAFETY_PERFORMANCE';
 
 export type PermissionLevel = 'full' | 'view' | 'none' | 'resolve' | 'parts_status' | 'assigned_only' | 'own_only' | 'submit';
 

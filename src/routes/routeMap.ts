@@ -14,6 +14,7 @@ export const routeToScreenMap: Record<string, ScreenId> = {
   '/driver': 'DRIVER_MOBILE_VIEW',
   '/tenant-config': 'TENANT_CONFIG',
   '/translation': 'TRANSLATION_CENTER',
+  '/safety': 'SAFETY_PERFORMANCE',
 };
 
 export const screenToRouteMap: Record<ScreenId, string> = {
@@ -30,4 +31,5 @@ export const screenToRouteMap: Record<ScreenId, string> = {
   DRIVER_MOBILE_VIEW: '/driver',
   TENANT_CONFIG: '/tenant-config',
   TRANSLATION_CENTER: '/translation',
+  SAFETY_PERFORMANCE: '/safety',
 };
