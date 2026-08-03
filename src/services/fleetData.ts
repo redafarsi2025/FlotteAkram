@@ -99,19 +99,27 @@ export async function fetchVehicles(bypassCache: boolean = false): Promise<Vehic
   const cacheKey = `vehicles_${tenantId}`;
   if (bypassCache) clearFleetCache(cacheKey);
   return fetchWithCache(cacheKey, async () => {
-    try {
-      const { data, error } = await supabase
-        .from('vehicles')
-        .select('*')
-        .eq('tenant_id', tenantId);
-      if (error || !data || data.length === 0) {
+    const { data, error } = await supabase
+      .from('vehicles')
+      .select('*')
+      .eq('tenant_id', tenantId);
+    
+    if (error) {
+      if ((import.meta as any).env?.DEV) {
+        console.warn('Supabase fetchVehicles error, fallback to seed in DEV:', error);
         return INITIAL_VEHICLES.map((v) => ({ ...v, tenant_id: tenantId }));
       }
-      return data as Vehicle[];
-    } catch (err) {
-      console.warn('Supabase fetchVehicles fallback to seed data:', err);
-      return INITIAL_VEHICLES.map((v) => ({ ...v, tenant_id: tenantId }));
+      throw new Error(`fetchVehicles failed: ${error.message}`);
     }
+    
+    if (!data || data.length === 0) {
+      if ((import.meta as any).env?.DEV) {
+        return INITIAL_VEHICLES.map((v) => ({ ...v, tenant_id: tenantId }));
+      }
+      return [];
+    }
+    
+    return data as Vehicle[];
   });
 }
 
@@ -120,19 +128,27 @@ export async function fetchInventory(bypassCache: boolean = false): Promise<Inve
   const cacheKey = `inventory_${tenantId}`;
   if (bypassCache) clearFleetCache(cacheKey);
   return fetchWithCache(cacheKey, async () => {
-    try {
-      const { data, error } = await supabase
-        .from('inventory_items')
-        .select('*')
-        .eq('tenant_id', tenantId);
-      if (error || !data || data.length === 0) {
+    const { data, error } = await supabase
+      .from('inventory_items')
+      .select('*')
+      .eq('tenant_id', tenantId);
+    
+    if (error) {
+      if ((import.meta as any).env?.DEV) {
+        console.warn('Supabase fetchInventory error, fallback to seed in DEV:', error);
         return INITIAL_INVENTORY.map((item) => ({ ...item, tenant_id: tenantId }));
       }
-      return data as InventoryItem[];
-    } catch (err) {
-      console.warn('Supabase fetchInventory fallback to seed data:', err);
-      return INITIAL_INVENTORY.map((item) => ({ ...item, tenant_id: tenantId }));
+      throw new Error(`fetchInventory failed: ${error.message}`);
     }
+    
+    if (!data || data.length === 0) {
+      if ((import.meta as any).env?.DEV) {
+        return INITIAL_INVENTORY.map((item) => ({ ...item, tenant_id: tenantId }));
+      }
+      return [];
+    }
+    
+    return data as InventoryItem[];
   });
 }
 
@@ -141,19 +157,48 @@ export async function fetchWorkOrders(bypassCache: boolean = false): Promise<Wor
   const cacheKey = `work_orders_${tenantId}`;
   if (bypassCache) clearFleetCache(cacheKey);
   return fetchWithCache(cacheKey, async () => {
-    try {
-      const { data, error } = await supabase
-        .from('work_orders')
-        .select('*')
-        .eq('tenant_id', tenantId);
-      if (error || !data || data.length === 0) {
+    const { data, error } = await supabase
+      .from('work_orders')
+      .select('*')
+      .eq('tenant_id', tenantId);
+    
+    if (error) {
+      if ((import.meta as any).env?.DEV) {
+        console.warn('Supabase fetchWorkOrders error, fallback to seed in DEV:', error);
         return INITIAL_WORK_ORDERS.map((wo) => ({ ...wo, tenant_id: tenantId }));
       }
-      return data as WorkOrder[];
-    } catch (err) {
-      console.warn('Supabase fetchWorkOrders fallback to seed data:', err);
-      return INITIAL_WORK_ORDERS.map((wo) => ({ ...wo, tenant_id: tenantId }));
+      throw new Error(`fetchWorkOrders failed: ${error.message}`);
     }
+    
+    if (!data || data.length === 0) {
+      if ((import.meta as any).env?.DEV) {
+        return INITIAL_WORK_ORDERS.map((wo) => ({ ...wo, tenant_id: tenantId }));
+      }
+      return [];
+    }
+    
+    return (data as any[]).map((wo) => {
+      let notes = { before: '', after: '' };
+      if (wo.before_after_notes) {
+        if (typeof wo.before_after_notes === 'string') {
+          try {
+            notes = JSON.parse(wo.before_after_notes);
+          } catch {
+            notes = { before: wo.before_after_notes, after: '' };
+          }
+        } else if (typeof wo.before_after_notes === 'object') {
+          notes = {
+            before: wo.before_after_notes.before || '',
+            after: wo.before_after_notes.after || '',
+          };
+        }
+      }
+      return {
+        ...wo,
+        parts_used: Array.isArray(wo.parts_used) ? wo.parts_used : [],
+        before_after_notes: notes,
+      } as WorkOrder;
+    });
   });
 }
 
@@ -162,19 +207,27 @@ export async function fetchIncidents(bypassCache: boolean = false): Promise<Inci
   const cacheKey = `incidents_${tenantId}`;
   if (bypassCache) clearFleetCache(cacheKey);
   return fetchWithCache(cacheKey, async () => {
-    try {
-      const { data, error } = await supabase
-        .from('driver_incidents')
-        .select('*')
-        .eq('tenant_id', tenantId);
-      if (error || !data || data.length === 0) {
+    const { data, error } = await supabase
+      .from('driver_incidents')
+      .select('*')
+      .eq('tenant_id', tenantId);
+    
+    if (error) {
+      if ((import.meta as any).env?.DEV) {
+        console.warn('Supabase fetchIncidents error, fallback to seed in DEV:', error);
         return INITIAL_INCIDENTS.map((inc) => ({ ...inc, tenant_id: tenantId }));
       }
-      return data as Incident[];
-    } catch (err) {
-      console.warn('Supabase fetchIncidents fallback to seed data:', err);
-      return INITIAL_INCIDENTS.map((inc) => ({ ...inc, tenant_id: tenantId }));
+      throw new Error(`fetchIncidents failed: ${error.message}`);
     }
+    
+    if (!data || data.length === 0) {
+      if ((import.meta as any).env?.DEV) {
+        return INITIAL_INCIDENTS.map((inc) => ({ ...inc, tenant_id: tenantId }));
+      }
+      return [];
+    }
+    
+    return data as Incident[];
   });
 }
 
@@ -183,19 +236,27 @@ export async function fetchCostRecords(bypassCache: boolean = false): Promise<Co
   const cacheKey = `cost_records_${tenantId}`;
   if (bypassCache) clearFleetCache(cacheKey);
   return fetchWithCache(cacheKey, async () => {
-    try {
-      const { data, error } = await supabase
-        .from('cost_records')
-        .select('*')
-        .eq('tenant_id', tenantId);
-      if (error || !data || data.length === 0) {
+    const { data, error } = await supabase
+      .from('cost_records')
+      .select('*')
+      .eq('tenant_id', tenantId);
+    
+    if (error) {
+      if ((import.meta as any).env?.DEV) {
+        console.warn('Supabase fetchCostRecords error, fallback to seed in DEV:', error);
         return INITIAL_COST_RECORDS.map((c) => ({ ...c, tenant_id: tenantId }));
       }
-      return data as CostRecord[];
-    } catch (err) {
-      console.warn('Supabase fetchCostRecords fallback to seed data:', err);
-      return INITIAL_COST_RECORDS.map((c) => ({ ...c, tenant_id: tenantId }));
+      throw new Error(`fetchCostRecords failed: ${error.message}`);
     }
+    
+    if (!data || data.length === 0) {
+      if ((import.meta as any).env?.DEV) {
+        return INITIAL_COST_RECORDS.map((c) => ({ ...c, tenant_id: tenantId }));
+      }
+      return [];
+    }
+    
+    return data as CostRecord[];
   });
 }
 
@@ -204,19 +265,27 @@ export async function fetchAlerts(bypassCache: boolean = false): Promise<FleetAl
   const cacheKey = `alerts_${tenantId}`;
   if (bypassCache) clearFleetCache(cacheKey);
   return fetchWithCache(cacheKey, async () => {
-    try {
-      const { data, error } = await supabase
-        .from('fleet_alerts')
-        .select('*')
-        .eq('tenant_id', tenantId);
-      if (error || !data || data.length === 0) {
+    const { data, error } = await supabase
+      .from('fleet_alerts')
+      .select('*')
+      .eq('tenant_id', tenantId);
+    
+    if (error) {
+      if ((import.meta as any).env?.DEV) {
+        console.warn('Supabase fetchAlerts error, fallback to seed in DEV:', error);
         return INITIAL_ALERTS.map((a) => ({ ...a, tenant_id: tenantId }));
       }
-      return data as FleetAlert[];
-    } catch (err) {
-      console.warn('Supabase fetchAlerts fallback to seed data:', err);
-      return INITIAL_ALERTS.map((a) => ({ ...a, tenant_id: tenantId }));
+      throw new Error(`fetchAlerts failed: ${error.message}`);
     }
+    
+    if (!data || data.length === 0) {
+      if ((import.meta as any).env?.DEV) {
+        return INITIAL_ALERTS.map((a) => ({ ...a, tenant_id: tenantId }));
+      }
+      return [];
+    }
+    
+    return data as FleetAlert[];
   });
 }
 
@@ -628,8 +697,9 @@ export async function getDriverIncidentLogs(options?: {
     filtered = filtered.filter((inc) => inc.vehicle_id === options.vehicleId);
   }
   if (options?.reportedBy) {
+    const reportPattern = options.reportedBy.toLowerCase();
     filtered = filtered.filter((inc) =>
-      inc.reported_by.toLowerCase().includes(options.reportedBy.toLowerCase())
+      inc.reported_by.toLowerCase().includes(reportPattern)
     );
   }
   if (options?.unmatchedOnly) {
@@ -720,6 +790,32 @@ export async function syncSubmitDriverIncidentToSupabase(
     return true;
   } catch (err) {
     console.warn('Sync submitDriverIncident exception:', err);
+    return false;
+  }
+}
+
+export async function syncCloseWorkOrderAtomic(
+  workOrderId: string,
+  afterNotes: string
+): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc('close_work_order_atomic', {
+      p_work_order_id: workOrderId,
+      p_after_notes: afterNotes
+    });
+    if (error) {
+      console.error('Error closing work order atomically:', error.message);
+      return false;
+    }
+    // Clear all caches so the frontend is fully updated from the DB
+    clearFleetCache('vehicles');
+    clearFleetCache('work_orders');
+    clearFleetCache('inventory');
+    clearFleetCache('alerts');
+    clearFleetCache('cost_records');
+    return !!data;
+  } catch (err) {
+    console.error('Exception closing work order atomically:', err);
     return false;
   }
 }

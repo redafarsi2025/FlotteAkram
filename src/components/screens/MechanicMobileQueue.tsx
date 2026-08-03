@@ -195,7 +195,7 @@ export const MechanicMobileQueue: React.FC = () => {
             </div>
 
             <p className="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100 font-medium">
-              "{wo.before_after_notes.before}"
+              "{wo.before_after_notes?.before || ''}"
             </p>
 
             <button

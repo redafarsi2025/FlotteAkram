@@ -234,12 +234,12 @@ export const WorkOrderQueue: React.FC = () => {
               <div className="space-y-1.5 text-xs">
                 <div className="p-2.5 rounded-lg bg-slate-50 text-slate-700">
                   <span className="font-bold text-slate-900 block mb-0.5">Before Notes:</span>
-                  {order.before_after_notes.before}
+                  {order.before_after_notes?.before || ''}
                 </div>
                 {order.status === 'Closed' && (
                   <div className="p-2.5 rounded-lg bg-emerald-50 text-emerald-900 border border-emerald-100">
                     <span className="font-bold text-emerald-950 block mb-0.5">After Notes (Completion):</span>
-                    {order.before_after_notes.after}
+                    {order.before_after_notes?.after || ''}
                   </div>
                 )}
               </div>

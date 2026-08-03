@@ -3,6 +3,7 @@ import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import { freeTranslateText } from './src/services/freeTranslationService';
+import { z } from 'zod';
 
 // Simple in-memory rate limiter for translation endpoint
 const requestCounts = new Map<string, { count: number; resetTime: number }>();
@@ -20,13 +21,23 @@ function isRateLimited(ip: string): boolean {
   return record.count > MAX_REQUESTS_PER_WINDOW;
 }
 
+const TranslateRequestSchema = z.object({
+  sourceText: z.string().min(1, 'Source text cannot be empty').max(5000, 'Source text cannot exceed 5000 characters'),
+  sourceLang: z.string().optional().default('fr'),
+  targetLang: z.string(),
+  key: z.string().optional(),
+  namespace: z.string().optional(),
+  context: z.string().optional(),
+  glossaryTerms: z.array(z.any()).optional().default([]),
+});
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
   app.use(express.json({ limit: '1mb' }));
 
-  // API Endpoint: Server-side Gemini Translation (Now powered by Free High-Fidelity Local Engine)
+  // API Endpoint: Server-side Gemini Translation (Now powered by Free High-Fidelity Local Engine with Zod validation)
   app.post('/api/translate', async (req, res) => {
     try {
       const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
@@ -34,15 +45,12 @@ async function startServer() {
         return res.status(429).json({ error: 'Rate limit exceeded. Please try again in a minute.' });
       }
 
-      const { sourceText, sourceLang, targetLang, key, namespace, context, glossaryTerms } = req.body;
-
-      if (!sourceText || typeof sourceText !== 'string' || !targetLang) {
-        return res.status(400).json({ error: 'Missing or invalid sourceText or targetLang parameter' });
+      const parseResult = TranslateRequestSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: 'Invalid input parameters', details: parseResult.error.format() });
       }
 
-      if (sourceText.length > 5000) {
-        return res.status(400).json({ error: 'sourceText exceeds maximum length of 5000 characters' });
-      }
+      const { sourceText, sourceLang, targetLang, key, glossaryTerms } = parseResult.data;
 
       // Translate utilizing the free high-performance local engine
       const translatedText = freeTranslateText(

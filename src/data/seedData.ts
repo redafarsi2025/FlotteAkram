@@ -69,6 +69,14 @@ export const ROLES_CONFIG: RoleInfo[] = [
     badgeColor: 'bg-teal-600 text-white',
     avatar: 'DR',
   },
+  {
+    id: 'UNASSIGNED',
+    name: 'Unassigned Account',
+    title: 'Pending Superuser Assignment',
+    description: 'New account awaiting role & tenant workspace assignment by the SaaS Superuser.',
+    badgeColor: 'bg-slate-600 text-white',
+    avatar: 'NA',
+  },
 ];
 
 export const RBAC_MATRIX: Record<ScreenId, Record<Role, PermissionLevel>> = {
@@ -80,6 +88,7 @@ export const RBAC_MATRIX: Record<ScreenId, Record<Role, PermissionLevel>> = {
     FLEET_MANAGER: 'full',
     MECHANIC: 'full',
     DRIVER: 'full',
+    UNASSIGNED: 'full',
   },
   STRATEGIC_DASHBOARD: {
     DIRECTOR: 'full',
@@ -89,6 +98,7 @@ export const RBAC_MATRIX: Record<ScreenId, Record<Role, PermissionLevel>> = {
     FLEET_MANAGER: 'none',
     MECHANIC: 'none',
     DRIVER: 'none',
+    UNASSIGNED: 'none',
   },
   VARIANCE_DASHBOARD: {
     DIRECTOR: 'view',
@@ -98,6 +108,7 @@ export const RBAC_MATRIX: Record<ScreenId, Record<Role, PermissionLevel>> = {
     FLEET_MANAGER: 'none',
     MECHANIC: 'none',
     DRIVER: 'none',
+    UNASSIGNED: 'none',
   },
   FLEET_HEALTH_GRID: {
     DIRECTOR: 'view',
@@ -107,6 +118,7 @@ export const RBAC_MATRIX: Record<ScreenId, Record<Role, PermissionLevel>> = {
     FLEET_MANAGER: 'full',
     MECHANIC: 'none',
     DRIVER: 'none',
+    UNASSIGNED: 'none',
   },
   INVENTORY_DASHBOARD: {
     DIRECTOR: 'view',
@@ -116,6 +128,7 @@ export const RBAC_MATRIX: Record<ScreenId, Record<Role, PermissionLevel>> = {
     FLEET_MANAGER: 'view',
     MECHANIC: 'assigned_only',
     DRIVER: 'none',
+    UNASSIGNED: 'none',
   },
   WORK_ORDER_QUEUE: {
     DIRECTOR: 'none',
@@ -125,6 +138,7 @@ export const RBAC_MATRIX: Record<ScreenId, Record<Role, PermissionLevel>> = {
     FLEET_MANAGER: 'full',
     MECHANIC: 'assigned_only',
     DRIVER: 'none',
+    UNASSIGNED: 'none',
   },
   CONFLICT_ALERTS: {
     DIRECTOR: 'none',
@@ -134,6 +148,7 @@ export const RBAC_MATRIX: Record<ScreenId, Record<Role, PermissionLevel>> = {
     FLEET_MANAGER: 'resolve',
     MECHANIC: 'none',
     DRIVER: 'none',
+    UNASSIGNED: 'none',
   },
   CAE_BUDGET_PRIORITIZATION: {
     DIRECTOR: 'view',
@@ -143,6 +158,7 @@ export const RBAC_MATRIX: Record<ScreenId, Record<Role, PermissionLevel>> = {
     FLEET_MANAGER: 'full',
     MECHANIC: 'none',
     DRIVER: 'none',
+    UNASSIGNED: 'none',
   },
   INCIDENT_REPORTS: {
     DIRECTOR: 'none',
@@ -152,6 +168,7 @@ export const RBAC_MATRIX: Record<ScreenId, Record<Role, PermissionLevel>> = {
     FLEET_MANAGER: 'view',
     MECHANIC: 'none',
     DRIVER: 'submit',
+    UNASSIGNED: 'none',
   },
   MECHANIC_MOBILE_QUEUE: {
     DIRECTOR: 'none',
@@ -161,6 +178,7 @@ export const RBAC_MATRIX: Record<ScreenId, Record<Role, PermissionLevel>> = {
     FLEET_MANAGER: 'view',
     MECHANIC: 'full',
     DRIVER: 'none',
+    UNASSIGNED: 'none',
   },
   DRIVER_MOBILE_VIEW: {
     DIRECTOR: 'none',
@@ -170,6 +188,7 @@ export const RBAC_MATRIX: Record<ScreenId, Record<Role, PermissionLevel>> = {
     FLEET_MANAGER: 'view',
     MECHANIC: 'none',
     DRIVER: 'full',
+    UNASSIGNED: 'none',
   },
   TENANT_CONFIG: {
     DIRECTOR: 'full',
@@ -179,6 +198,7 @@ export const RBAC_MATRIX: Record<ScreenId, Record<Role, PermissionLevel>> = {
     FLEET_MANAGER: 'view',
     MECHANIC: 'none',
     DRIVER: 'none',
+    UNASSIGNED: 'none',
   },
   TRANSLATION_CENTER: {
     DIRECTOR: 'full',
@@ -188,6 +208,7 @@ export const RBAC_MATRIX: Record<ScreenId, Record<Role, PermissionLevel>> = {
     FLEET_MANAGER: 'full',
     MECHANIC: 'view',
     DRIVER: 'view',
+    UNASSIGNED: 'none',
   },
 };
 
@@ -197,6 +218,10 @@ export const INITIAL_TENANT_CONFIGS: TenantConfig[] = [
     societyName: 'NextTransit Metro Fleet Society S.A.',
     currency: 'USD ($)',
     currencySymbol: '$',
+    defaultLanguage: 'en',
+    timezone: 'America/Chicago',
+    notificationsEnabled: true,
+    customDomain: 'metro.nexttransit.com',
     allocatedBudget: 450000,
     moneyUsed: 382450,
     fiscalYear: 'FY2026',
@@ -209,6 +234,9 @@ export const INITIAL_TENANT_CONFIGS: TenantConfig[] = [
     contactPhone: '+1 (555) 234-8900',
     billingAddress: '100 Logistics Blvd, Suite 400, Chicago, IL 60607',
     autoSyncMoneyUsed: true,
+    primaryColor: '#4f46e5',
+    accentColor: '#059669',
+    brandTagline: 'Next-Gen Transit Operations & Telemetry Intelligence',
     lastUpdated: '2026-08-01',
   },
   {
@@ -216,6 +244,10 @@ export const INITIAL_TENANT_CONFIGS: TenantConfig[] = [
     societyName: 'EuroTransit Express Logistics GmbH',
     currency: 'EUR (€)',
     currencySymbol: '€',
+    defaultLanguage: 'fr',
+    timezone: 'Europe/Berlin',
+    notificationsEnabled: true,
+    customDomain: 'euro.nexttransit.eu',
     allocatedBudget: 520000,
     moneyUsed: 412000,
     fiscalYear: 'FY2026',
@@ -228,6 +260,9 @@ export const INITIAL_TENANT_CONFIGS: TenantConfig[] = [
     contactPhone: '+49 30 1234567',
     billingAddress: 'Logistikpark 12, 10115 Berlin, Germany',
     autoSyncMoneyUsed: false,
+    primaryColor: '#2563eb',
+    accentColor: '#d97706',
+    brandTagline: 'Pan-European Connected Logistics',
     lastUpdated: '2026-07-28',
   },
   {
@@ -235,6 +270,10 @@ export const INITIAL_TENANT_CONFIGS: TenantConfig[] = [
     societyName: 'Municipal Transit Authority Society',
     currency: 'USD ($)',
     currencySymbol: '$',
+    defaultLanguage: 'en',
+    timezone: 'America/Detroit',
+    notificationsEnabled: true,
+    customDomain: 'muni.nexttransit.org',
     allocatedBudget: 680000,
     moneyUsed: 590120,
     fiscalYear: 'FY2026',
@@ -247,6 +286,9 @@ export const INITIAL_TENANT_CONFIGS: TenantConfig[] = [
     contactPhone: '+1 (555) 987-6543',
     billingAddress: '500 Public Works Way, Suite 10, Detroit, MI 48226',
     autoSyncMoneyUsed: true,
+    primaryColor: '#0284c7',
+    accentColor: '#10b981',
+    brandTagline: 'Public Urban Mass Transport Excellence',
     lastUpdated: '2026-07-15',
   },
   {
@@ -254,6 +296,10 @@ export const INITIAL_TENANT_CONFIGS: TenantConfig[] = [
     societyName: 'Société Nationale de Transit Algérie (SNTA)',
     currency: 'DZD (DA)',
     currencySymbol: 'DA',
+    defaultLanguage: 'fr',
+    timezone: 'Africa/Algiers',
+    notificationsEnabled: true,
+    customDomain: 'snta.nexttransit.dz',
     allocatedBudget: 65000000,
     moneyUsed: 48500000,
     fiscalYear: 'FY2026',
@@ -266,6 +312,9 @@ export const INITIAL_TENANT_CONFIGS: TenantConfig[] = [
     contactPhone: '+213 21 65 43 21',
     billingAddress: 'Zone Industrielle Oued Smar, Alger, Algérie',
     autoSyncMoneyUsed: false,
+    primaryColor: '#059669',
+    accentColor: '#d97706',
+    brandTagline: 'Transport Terrestre & Logistique de la Sahara',
     lastUpdated: '2026-08-01',
   },
 ];

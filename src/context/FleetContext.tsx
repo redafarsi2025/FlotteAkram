@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { screenToRouteMap } from '../routes/routeMap';
 import {
   fetchVehicles,
   fetchInventory,
@@ -11,6 +13,7 @@ import {
   syncLogOBDFaultToSupabase,
   syncCreateWorkOrderToSupabase,
   syncSubmitDriverIncidentToSupabase,
+  syncCloseWorkOrderAtomic,
 } from '../services/fleetData';
 import {
   Role,
@@ -24,6 +27,7 @@ import {
   CAEItem,
   VehicleClassification,
   TenantConfig,
+  DEFAULT_ROLE_SCREENS,
 } from '../types';
 import {
   INITIAL_VEHICLES,
@@ -63,8 +67,8 @@ interface FleetContextType {
   addTenantConfig: (newTenant: Omit<TenantConfig, 'id' | 'lastUpdated'>) => string;
 
   // Actions
-  changeRole: (role: Role) => void;
-  changeScreen: (screen: ScreenId) => void;
+  changeRole: (role: Role, preferredScreen?: ScreenId) => void;
+  changeScreen: (screen: ScreenId, shouldNavigate?: boolean) => void;
   setSelectedVehicleId: (id: string | null) => void;
   setIsRoleSelectorOpen: (open: boolean) => void;
   setCaeAvailableBudget: (amount: number) => void;
@@ -121,6 +125,7 @@ interface FleetContextType {
 const FleetContext = createContext<FleetContextType | undefined>(undefined);
 
 export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const navigate = useNavigate();
   const [currentRole, setCurrentRole] = useState<Role>('DIRECTOR');
   const [currentScreen, setCurrentScreen] = useState<ScreenId>('LANDING_PAGE');
   const [isRoleSelectorOpen, setIsRoleSelectorOpen] = useState<boolean>(false); // Start false so Landing Page shows clean first
@@ -200,32 +205,32 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, []);
 
   // 2. Fetch multi-tenant isolated fleet data from Supabase whenever activeTenantId or session state shifts
+  const loadFleetData = async (active: boolean = true) => {
+    try {
+      const [vList, iList, woList, incList, cList, aList] = await Promise.all([
+        fetchVehicles(true),
+        fetchInventory(true),
+        fetchWorkOrders(true),
+        fetchIncidents(true),
+        fetchCostRecords(true),
+        fetchAlerts(true),
+      ]);
+      if (active) {
+        setVehicles(vList);
+        setInventory(iList);
+        setWorkOrders(woList);
+        setIncidents(incList);
+        setCostRecords(cList);
+        setAlerts(aList);
+      }
+    } catch (err) {
+      console.warn('Failed to load isolated fleet data from Supabase:', err);
+    }
+  };
+
   useEffect(() => {
     let active = true;
-    const loadFleetData = async () => {
-      try {
-        const [vList, iList, woList, incList, cList, aList] = await Promise.all([
-          fetchVehicles(true),
-          fetchInventory(true),
-          fetchWorkOrders(true),
-          fetchIncidents(true),
-          fetchCostRecords(true),
-          fetchAlerts(true),
-        ]);
-        if (active) {
-          setVehicles(vList);
-          setInventory(iList);
-          setWorkOrders(woList);
-          setIncidents(incList);
-          setCostRecords(cList);
-          setAlerts(aList);
-        }
-      } catch (err) {
-        console.warn('Failed to load isolated fleet data from Supabase:', err);
-      }
-    };
-
-    loadFleetData();
+    loadFleetData(active);
     return () => {
       active = false;
     };
@@ -265,15 +270,59 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const updateTenantConfig = (id: string, updated: Partial<TenantConfig>) => {
     setTenantConfigs((prev) =>
-      prev.map((t) =>
-        t.id === id
-          ? {
-              ...t,
-              ...updated,
-              lastUpdated: new Date().toISOString().split('T')[0],
-            }
-          : t
-      )
+      prev.map((t) => {
+        if (t.id === id) {
+          const merged = {
+            ...t,
+            ...updated,
+            lastUpdated: new Date().toISOString().split('T')[0],
+          };
+
+          // Asynchronously attempt to sync with Supabase tenant_configs table
+          supabase
+            .from('tenant_configs')
+            .upsert({
+              id: merged.id,
+              society_name: merged.societyName,
+              currency: merged.currency,
+              currency_symbol: merged.currencySymbol,
+              default_language: merged.defaultLanguage,
+              timezone: merged.timezone,
+              notifications_enabled: merged.notificationsEnabled,
+              custom_domain: merged.customDomain,
+              allocated_budget: merged.allocatedBudget,
+              money_used: merged.moneyUsed,
+              fiscal_year: merged.fiscalYear,
+              operating_region: merged.operatingRegion,
+              tax_registration_id: merged.taxRegistrationId,
+              cost_center_code: merged.costCenterCode,
+              default_labor_rate: merged.defaultLaborRate,
+              emergency_approval_threshold: merged.emergencyApprovalThreshold,
+              contact_email: merged.contactEmail,
+              contact_phone: merged.contactPhone,
+              billing_address: merged.billingAddress,
+              auto_sync_money_used: merged.autoSyncMoneyUsed,
+              primary_color: merged.primaryColor,
+              accent_color: merged.accentColor,
+              brand_tagline: merged.brandTagline,
+              logo_url: merged.logoUrl,
+              updated_at: new Date().toISOString(),
+            })
+            .then(
+              ({ error }) => {
+                if (error) {
+                  console.warn('Supabase tenant_configs upsert note:', error.message);
+                }
+              },
+              (err) => {
+                console.warn('Supabase tenant_configs upsert network note:', err);
+              }
+            );
+
+          return merged;
+        }
+        return t;
+      })
     );
   };
 
@@ -292,27 +341,86 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     };
     setTenantConfigs((prev) => [...prev, fullTenant]);
     setActiveTenantIdState(newId);
+
+    // Sync to Supabase
+    supabase
+      .from('tenant_configs')
+      .upsert({
+        id: fullTenant.id,
+        society_name: fullTenant.societyName,
+        currency: fullTenant.currency,
+        currency_symbol: fullTenant.currencySymbol,
+        default_language: fullTenant.defaultLanguage,
+        timezone: fullTenant.timezone,
+        notifications_enabled: fullTenant.notificationsEnabled,
+        custom_domain: fullTenant.customDomain,
+        allocated_budget: fullTenant.allocatedBudget,
+        money_used: fullTenant.moneyUsed,
+        fiscal_year: fullTenant.fiscalYear,
+        operating_region: fullTenant.operatingRegion,
+        tax_registration_id: fullTenant.taxRegistrationId,
+        cost_center_code: fullTenant.costCenterCode,
+        default_labor_rate: fullTenant.defaultLaborRate,
+        emergency_approval_threshold: fullTenant.emergencyApprovalThreshold,
+        contact_email: fullTenant.contactEmail,
+        contact_phone: fullTenant.contactPhone,
+        billing_address: fullTenant.billingAddress,
+        auto_sync_money_used: fullTenant.autoSyncMoneyUsed,
+        primary_color: fullTenant.primaryColor,
+        accent_color: fullTenant.accentColor,
+        brand_tagline: fullTenant.brandTagline,
+        logo_url: fullTenant.logoUrl,
+        updated_at: new Date().toISOString(),
+      })
+      .then(
+        ({ error }) => {
+          if (error) {
+            console.warn('Supabase tenant_configs insert note:', error.message);
+          }
+        },
+        (err) => {
+          console.warn('Supabase tenant_configs insert network note:', err);
+        }
+      );
+
     return newId;
   };
 
   const [goldenPathAStatus, setGoldenPathAStatus] = useState({ active: false, currentStep: 0 });
   const [goldenPathBStatus, setGoldenPathBStatus] = useState({ active: false, currentStep: 0 });
 
-  // When switching roles, ensure current screen is accessible by new role
-  const changeRole = (newRole: Role) => {
-    setCurrentRole(newRole);
-    setIsRoleSelectorOpen(false);
-    const availableScreens = Object.entries(RBAC_MATRIX)
-      .filter(([_, perms]) => perms[newRole] !== 'none')
-      .map(([id]) => id as ScreenId);
-
-    if (!availableScreens.includes(currentScreen) && availableScreens.length > 0) {
-      setCurrentScreen(availableScreens[0]);
+  const changeScreen = (screen: ScreenId, shouldNavigate: boolean = true) => {
+    setCurrentScreen(screen);
+    if (shouldNavigate) {
+      const targetRoute = screenToRouteMap[screen];
+      if (targetRoute && window.location.pathname !== targetRoute) {
+        navigate(targetRoute);
+      }
     }
   };
 
-  const changeScreen = (screen: ScreenId) => {
-    setCurrentScreen(screen);
+  // When switching roles, ensure current screen is accessible by new role or navigate to role's workspace
+  const changeRole = (newRole: Role, preferredScreen?: ScreenId) => {
+    setCurrentRole(newRole);
+    setIsRoleSelectorOpen(false);
+
+    if (preferredScreen) {
+      const prefPerm = RBAC_MATRIX[preferredScreen]?.[newRole];
+      if (prefPerm && prefPerm !== 'none') {
+        changeScreen(preferredScreen);
+        return;
+      }
+    }
+
+    const currentPerm = RBAC_MATRIX[currentScreen]?.[newRole];
+    const isCurrentAllowed = currentPerm && currentPerm !== 'none' && currentScreen !== 'LANDING_PAGE';
+
+    if (isCurrentAllowed) {
+      return;
+    }
+
+    const defaultScreen = DEFAULT_ROLE_SCREENS[newRole] || 'STRATEGIC_DASHBOARD';
+    changeScreen(defaultScreen);
   };
 
   const updateCaeDelayMultiplier = (classification: VehicleClassification, mult: number) => {
@@ -524,12 +632,12 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     syncCreateWorkOrderToSupabase(newWorkOrder);
   };
 
-  // Close Work Order -> Deducts Inventory, Updates Vehicle Status & Cost Records
-  const closeWorkOrder = (orderId: string, afterNotes: string) => {
+  // Close Work Order -> Deducts Inventory, Updates Vehicle Status & Cost Records (Atomic RPC Orchestration)
+  const closeWorkOrder = async (orderId: string, afterNotes: string) => {
     const targetOrder = workOrders.find((w) => w.id === orderId);
     if (!targetOrder || targetOrder.status === 'Closed') return;
 
-    // 1. Update Work Order
+    // 1. Optimistic Client State Update
     setWorkOrders((prev) =>
       prev.map((w) =>
         w.id === orderId
@@ -546,7 +654,7 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       )
     );
 
-    // 2. Consume inventory parts
+    // 2. Consume inventory parts optimistically
     if (targetOrder.parts_used.length > 0) {
       setInventory((prevInv) =>
         prevInv.map((item) => {
@@ -628,6 +736,13 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       severity: 'info',
       vehicle_id: targetOrder.vehicle_id,
     });
+
+    // 5. Invoke Supabase atomic RPC to perform full safe state transition on Postgres
+    const ok = await syncCloseWorkOrderAtomic(orderId, afterNotes);
+    if (ok) {
+      // Reload everything to stay 100% in sync with the database schema / backend state
+      loadFleetData(true);
+    }
   };
 
   // R4 Conflict Resolution by Fleet Manager

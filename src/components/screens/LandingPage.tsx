@@ -43,6 +43,7 @@ import {
   Info,
   LogIn,
   LogOut,
+  UserPlus,
   Menu,
   X,
   MessageSquare,
@@ -74,6 +75,7 @@ export const LandingPage: React.FC = () => {
   // Active scenario for dynamic KPI visualization
   const [activeScenarioId, setActiveScenarioId] = useState<string>('sahara');
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
+  const [authModalIsSignUp, setAuthModalIsSignUp] = useState<boolean>(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
 
   // Conversion Modals & Interactions
@@ -389,16 +391,31 @@ export const LandingPage: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <button
-                onClick={() => {
-                  setShowAuthModal(true);
-                  setIsMobileMenuOpen(false);
-                }}
-                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-xs font-bold transition-all cursor-pointer"
-              >
-                <LogIn className="h-3.5 w-3.5 text-indigo-600" />
-                <span>{currentLanguage === 'ar' ? 'دخول' : currentLanguage === 'en' ? 'Log In' : 'Connexion'}</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setAuthModalIsSignUp(false);
+                    setShowAuthModal(true);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-xs font-bold transition-all cursor-pointer"
+                >
+                  <LogIn className="h-3.5 w-3.5 text-indigo-600" />
+                  <span>{currentLanguage === 'ar' ? 'دخول' : currentLanguage === 'en' ? 'Log In' : 'Connexion'}</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setAuthModalIsSignUp(true);
+                    setShowAuthModal(true);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-emerald-300 bg-emerald-600 text-white hover:bg-emerald-500 text-xs font-bold transition-all cursor-pointer shadow-xs"
+                >
+                  <UserPlus className="h-3.5 w-3.5" />
+                  <span>{currentLanguage === 'ar' ? 'إنشاء حساب' : currentLanguage === 'en' ? 'Sign Up' : 'S\'enregistrer'}</span>
+                </button>
+              </div>
             )}
 
             {/* App Launch CTA */}
@@ -482,13 +499,24 @@ export const LandingPage: React.FC = () => {
           </div>
 
           {/* Action Buttons with high visibility */}
-          <div className="pt-4 flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
+          <div className="pt-4 flex flex-col sm:flex-row flex-wrap gap-4 items-stretch sm:items-center">
             <button
               onClick={() => changeScreen('STRATEGIC_DASHBOARD')}
               className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold shadow-lg shadow-indigo-900/30 transition-all cursor-pointer group"
             >
               {currentT('exploreApp')}
               <ArrowRight className={`h-4 w-4 transform transition-transform ${dir === 'rtl' ? 'rotate-180' : 'group-hover:translate-x-1'}`} />
+            </button>
+
+            <button
+              onClick={() => {
+                setAuthModalIsSignUp(true);
+                setShowAuthModal(true);
+              }}
+              className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg shadow-emerald-900/30 transition-all cursor-pointer"
+            >
+              <UserPlus className="h-4 w-4" />
+              {currentLanguage === 'ar' ? 'إنشاء حساب جديد (Tenant)' : currentLanguage === 'en' ? 'Sign Up / Create Account' : 'Créer un compte / S\'enregistrer'}
             </button>
 
             <button
@@ -1104,7 +1132,7 @@ export const LandingPage: React.FC = () => {
 
       {/* Auth Modal Trigger */}
       {showAuthModal && (
-        <AuthModal onClose={() => setShowAuthModal(false)} />
+        <AuthModal onClose={() => setShowAuthModal(false)} initialIsSignUp={authModalIsSignUp} />
       )}
 
       {/* Live Calendar booking Modal */}

@@ -460,7 +460,7 @@ export const RoiCalculator: React.FC<RoiCalculatorProps> = ({ currentLanguage, o
                       contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px' }}
                       itemStyle={{ color: '#f8fafc', fontSize: '12px' }}
                       labelStyle={{ color: '#94a3b8', fontSize: '11px', fontWeight: 'bold' }}
-                      formatter={(value: any, name: string) => [`${Number(value).toLocaleString()} DA`, name]}
+                      formatter={(value: any, name: any) => [`${Number(value).toLocaleString()} DA`, String(name)]}
                     />
                     <Legend 
                       verticalAlign="top" 

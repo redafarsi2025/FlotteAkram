@@ -5,7 +5,8 @@ export type Role =
   | 'LOGISTICS_CONTROLLER'
   | 'FLEET_MANAGER'
   | 'MECHANIC'
-  | 'DRIVER';
+  | 'DRIVER'
+  | 'UNASSIGNED';
 
 export interface RoleInfo {
   id: Role;
@@ -32,6 +33,17 @@ export type ScreenId =
   | 'TRANSLATION_CENTER';
 
 export type PermissionLevel = 'full' | 'view' | 'none' | 'resolve' | 'parts_status' | 'assigned_only' | 'own_only' | 'submit';
+
+export const DEFAULT_ROLE_SCREENS: Record<Role, ScreenId> = {
+  DIRECTOR: 'STRATEGIC_DASHBOARD',
+  FLEET_MANAGER: 'FLEET_HEALTH_GRID',
+  TECHNICAL_CONTROLLER: 'WORK_ORDER_QUEUE',
+  MGMT_CONTROLLER: 'VARIANCE_DASHBOARD',
+  LOGISTICS_CONTROLLER: 'INVENTORY_DASHBOARD',
+  MECHANIC: 'MECHANIC_MOBILE_QUEUE',
+  DRIVER: 'DRIVER_MOBILE_VIEW',
+  UNASSIGNED: 'LANDING_PAGE',
+};
 
 export type VehicleStatus = 'Healthy' | 'Attention' | 'Critical' | 'Unknown';
 export type VehicleClassification = 'Keystone' | 'Standard';
@@ -183,8 +195,12 @@ export type KPILabelType = 'Calculated' | 'Statistical estimate' | 'Configured';
 export interface TenantConfig {
   id: string; // Tenant ID e.g. "TNT-NEXTR-001"
   societyName: string; // "NextTransit Fleet Operations Society Ltd."
-  currency: string; // "USD ($)"
-  currencySymbol: string; // "$"
+  currency: string; // "USD ($)" | "DZD (DA)" | "EUR (€)"
+  currencySymbol: string; // "$" | "DA" | "€"
+  defaultLanguage?: 'fr' | 'en' | 'ar'; // Langue par défaut de l'espace tenant
+  timezone?: string; // e.g. "Africa/Algiers" or "Europe/Paris"
+  notificationsEnabled?: boolean; // Alertes emails/SMS activées
+  customDomain?: string; // e.g. "fleet.nexttransit.dz"
   allocatedBudget: number; // e.g. 450000
   moneyUsed: number; // e.g. 382450
   fiscalYear: string; // "FY2026"
@@ -197,5 +213,9 @@ export interface TenantConfig {
   contactPhone: string; // "+1 (555) 019-2834"
   billingAddress: string; // "100 Fleet Center Plaza, Suite 400, Chicago, IL"
   autoSyncMoneyUsed: boolean; // Sync automatically with cost records sum
+  logoUrl?: string; // Custom logo image URL or SVG identifier
+  primaryColor?: string; // Custom hex or tailwind class for brand primary theme (e.g. "#4f46e5")
+  accentColor?: string; // Custom accent color (e.g. "#059669")
+  brandTagline?: string; // Custom tagline (e.g. "Excellence in Regional Transport")
   lastUpdated: string; // e.g. "2026-08-01"
 }

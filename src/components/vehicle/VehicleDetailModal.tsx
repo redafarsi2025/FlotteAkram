@@ -841,8 +841,8 @@ export const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({
                       </div>
 
                       <div className="mt-2 text-xs text-slate-700">
-                        <p><strong>Before/Notes:</strong> {wo.before_after_notes.before}</p>
-                        {wo.before_after_notes.after && (
+                        <p><strong>Before/Notes:</strong> {wo.before_after_notes?.before || ''}</p>
+                        {wo.before_after_notes?.after && (
                           <p className="mt-1 text-slate-600"><strong>After:</strong> {wo.before_after_notes.after}</p>
                         )}
                       </div>
