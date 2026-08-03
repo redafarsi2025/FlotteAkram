@@ -15,6 +15,7 @@ import { ComparisonSection } from '../landing/ComparisonSection';
 import { PricingSection } from '../landing/PricingSection';
 import { FaqSection } from '../landing/FaqSection';
 import { ContactModal } from '../landing/ContactModal';
+import { RoadmapSection } from '../landing/RoadmapSection';
 
 const RoiCalculator = lazy(() => import('../landing/RoiCalculator').then(m => ({ default: m.RoiCalculator })));
 
@@ -307,23 +308,23 @@ export const LandingPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-16 pb-12">
+    <div className="-m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8 bg-ink text-white space-y-16 pb-12 rounded-3xl min-h-screen">
 
       {/* LANDING PAGE HORIZONTAL HEADER MENU */}
-      <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border border-slate-200/80 rounded-2xl px-4 py-3 shadow-md flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+      <header className="sticky top-0 z-50 w-full bg-ink-2/95 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-3 shadow-md flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 text-white">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-600/20">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-ochre text-ink shadow-md font-bold">
               <Truck className="h-5 w-5" />
             </div>
             <div>
-              <span className="font-extrabold text-base text-slate-950 tracking-tight">NextTransit</span>
-              <span className="text-[9px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.5 rounded ml-1.5 font-mono">DZ</span>
+              <span className="font-extrabold text-base text-white tracking-tight font-display">NextTransit</span>
+              <span className="text-[9px] bg-ochre/20 text-ochre font-bold px-1.5 py-0.5 rounded ml-1.5 font-data">DZ</span>
             </div>
           </div>
           <button 
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="lg:hidden p-1.5 text-slate-500 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition"
+            className="lg:hidden p-1.5 text-slate-doc hover:text-white rounded-lg hover:bg-white/5 transition"
           >
             {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -331,13 +332,13 @@ export const LandingPage: React.FC = () => {
 
         {/* Menu Navigation Links */}
         <div className={`${isMobileMenuOpen ? 'flex' : 'hidden lg:flex'} flex-col lg:flex-row lg:items-center gap-4 lg:gap-6 w-full lg:w-auto`}>
-          <nav className="flex flex-col lg:flex-row gap-2 lg:gap-5 font-semibold text-xs text-slate-600">
+          <nav className="flex flex-col lg:flex-row gap-2 lg:gap-5 font-semibold text-xs text-slate-doc">
             <button
               onClick={() => {
                 document.getElementById('scenarios-simulation')?.scrollIntoView({ behavior: 'smooth' });
                 setIsMobileMenuOpen(false);
               }}
-              className="text-left py-1 hover:text-indigo-600 hover:underline transition font-bold"
+              className="text-left py-1 hover:text-ochre transition font-bold cursor-pointer"
             >
               {currentLanguage === 'ar' ? 'المحاكاة الإقليمية' : currentLanguage === 'en' ? 'Zone Simulator' : 'Simulateur'}
             </button>
@@ -346,7 +347,7 @@ export const LandingPage: React.FC = () => {
                 document.getElementById('problems-solve')?.scrollIntoView({ behavior: 'smooth' });
                 setIsMobileMenuOpen(false);
               }}
-              className="text-left py-1 hover:text-indigo-600 hover:underline transition font-bold"
+              className="text-left py-1 hover:text-ochre transition font-bold cursor-pointer"
             >
               {currentLanguage === 'ar' ? 'المشكلات' : currentLanguage === 'en' ? 'Problems' : 'Problèmes'}
             </button>
@@ -355,7 +356,7 @@ export const LandingPage: React.FC = () => {
                 document.getElementById('features-list')?.scrollIntoView({ behavior: 'smooth' });
                 setIsMobileMenuOpen(false);
               }}
-              className="text-left py-1 hover:text-indigo-600 hover:underline transition font-bold"
+              className="text-left py-1 hover:text-ochre transition font-bold cursor-pointer"
             >
               {currentLanguage === 'ar' ? 'الوحدات والمميزات' : currentLanguage === 'en' ? 'ERP Modules' : 'Modules ERP'}
             </button>
@@ -364,20 +365,20 @@ export const LandingPage: React.FC = () => {
                 document.getElementById('pricing-plans')?.scrollIntoView({ behavior: 'smooth' });
                 setIsMobileMenuOpen(false);
               }}
-              className="text-left py-1 hover:text-indigo-600 hover:underline transition font-bold"
+              className="text-left py-1 hover:text-ochre transition font-bold cursor-pointer"
             >
               {currentLanguage === 'ar' ? 'الأسعار' : currentLanguage === 'en' ? 'Pricing' : 'Tarifs'}
             </button>
           </nav>
 
-          <div className="flex flex-col sm:flex-row lg:items-center gap-3 pt-2 lg:pt-0 border-t border-slate-100 lg:border-0">
+          <div className="flex flex-col sm:flex-row lg:items-center gap-3 pt-2 lg:pt-0 border-t border-white/10 lg:border-0">
             {/* Language Selector */}
             <LanguageSelector />
 
             {/* User Session Buttons */}
             {currentUser ? (
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-slate-500 max-w-[120px] truncate" title={currentUser.email}>
+                <span className="text-xs font-semibold text-slate-doc max-w-[120px] truncate" title={currentUser.email}>
                   {currentUser.email}
                 </span>
                 <button
@@ -385,9 +386,9 @@ export const LandingPage: React.FC = () => {
                     await supabase.auth.signOut();
                     setIsMobileMenuOpen(false);
                   }}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 text-xs font-bold transition-all cursor-pointer"
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-bold transition-all cursor-pointer"
                 >
-                  <LogOut className="h-3.5 w-3.5 text-red-600" />
+                  <LogOut className="h-3.5 w-3.5 text-red-400" />
                   <span>{currentLanguage === 'ar' ? 'خروج' : currentLanguage === 'en' ? 'Log Out' : 'Déconnexion'}</span>
                 </button>
               </div>
@@ -399,9 +400,9 @@ export const LandingPage: React.FC = () => {
                     setShowAuthModal(true);
                     setIsMobileMenuOpen(false);
                   }}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-xs font-bold transition-all cursor-pointer"
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-white/20 bg-white/5 text-white hover:bg-white/10 text-xs font-bold transition-all cursor-pointer"
                 >
-                  <LogIn className="h-3.5 w-3.5 text-indigo-600" />
+                  <LogIn className="h-3.5 w-3.5 text-ochre" />
                   <span>{currentLanguage === 'ar' ? 'دخول' : currentLanguage === 'en' ? 'Log In' : 'Connexion'}</span>
                 </button>
 
@@ -411,7 +412,7 @@ export const LandingPage: React.FC = () => {
                     setShowAuthModal(true);
                     setIsMobileMenuOpen(false);
                   }}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-emerald-300 bg-emerald-600 text-white hover:bg-emerald-500 text-xs font-bold transition-all cursor-pointer shadow-xs"
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-ochre/40 bg-ochre/20 text-ochre hover:bg-ochre/30 text-xs font-bold transition-all cursor-pointer shadow-xs"
                 >
                   <UserPlus className="h-3.5 w-3.5" />
                   <span>{currentLanguage === 'ar' ? 'إنشاء حساب' : currentLanguage === 'en' ? 'Sign Up' : 'S\'enregistrer'}</span>
@@ -425,7 +426,7 @@ export const LandingPage: React.FC = () => {
                 changeScreen('STRATEGIC_DASHBOARD');
                 setIsMobileMenuOpen(false);
               }}
-              className="inline-flex items-center justify-center gap-1 px-3.5 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold transition-all cursor-pointer shadow-sm hover:bg-indigo-500"
+              className="inline-flex items-center justify-center gap-1 px-3.5 py-2 rounded-xl bg-ochre text-ink text-xs font-bold transition-all cursor-pointer shadow-sm hover:bg-[#D68A4C]"
             >
               <span>{currentLanguage === 'ar' ? 'دخول التطبيق' : currentLanguage === 'en' ? 'Launch Operations' : 'Accéder à l\'App'}</span>
               <ArrowRight className="h-3.5 w-3.5" />
@@ -434,124 +435,64 @@ export const LandingPage: React.FC = () => {
         </div>
       </header>
 
-      {/* 1. HERO SECTION WITH BACKGROUND IMAGE AND CTAs */}
-      <div className="relative rounded-3xl border border-slate-200 bg-slate-950 text-white overflow-hidden shadow-xl min-h-[520px] lg:min-h-[580px] flex items-center">
-        
-        {/* Widescreen Background Image with Soft Left or RTL Right Fade */}
-        <div className="absolute inset-0 z-0">
-          <img
-            src={landingBg}
-            alt="NextTransit Algerian Fleet Operations sunset background visual"
-            className="w-full h-full object-cover object-center opacity-40 lg:opacity-50"
-            referrerPolicy="no-referrer"
-          />
-          {/* Dynamic multi-directional gradient overlay to guarantee text readability in any language alignment */}
-          <div className={`absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent lg:bg-gradient-to-r lg:from-slate-950 lg:via-slate-950/80 lg:to-slate-900/10 ${dir === 'rtl' ? 'lg:bg-gradient-to-l' : 'lg:bg-gradient-to-r'}`} />
-        </div>
-
-        {/* Content Box */}
-        <div className="relative z-10 max-w-4xl p-6 sm:p-8 lg:p-12 space-y-6">
-          <div className="flex flex-wrap gap-2.5">
-            <div className="inline-flex items-center gap-2 rounded-full bg-indigo-500/20 border border-indigo-400/30 px-3.5 py-1 text-xs font-semibold text-indigo-300 backdrop-blur-md">
-              <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
-              NextTransit Enterprise • Algérie Edition
-            </div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/20 border border-emerald-400/30 px-3.5 py-1 text-xs font-semibold text-emerald-300 backdrop-blur-md">
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-              {currentT('verifiedDataModel')}
-            </div>
+      {/* 1. HERO SECTION WITH ARBITRATION SHEET (TAILWIND V4 INK & OCHRE THEME) */}
+      <div className="grid lg:grid-cols-2 gap-10 items-center bg-ink rounded-3xl border border-white/10 p-6 sm:p-10 lg:p-14 overflow-hidden relative">
+        <div className="relative z-10 space-y-6">
+          <div className="inline-flex items-center gap-2 rounded-full border border-ochre/35 px-3 py-1.5 text-[11px] font-data uppercase tracking-wider text-ochre">
+            <span className="h-1.5 w-1.5 rounded-full bg-ochre" />
+            {currentLanguage === 'ar' ? 'المرحلة 1 — محرك القواعد قيد التشغيل' : currentLanguage === 'en' ? 'Phase 1 — Rule Engine Live' : 'Phase 1 — Moteur de règles déployé'}
           </div>
-
-          <div className="space-y-4">
-            <h1 className="text-3xl sm:text-4xl lg:text-5.5xl font-extrabold tracking-tight leading-tight text-white">
-              {currentT('title')}
-            </h1>
-            <p className="text-sm sm:text-base text-slate-300 max-w-2xl leading-relaxed font-normal">
-              {currentT('subtitle')}
-            </p>
+          <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-semibold text-white leading-tight tracking-tight">
+            {currentLanguage === 'ar' ? 'لكل عطل ثمن. نعرضه لك قبل حدوثه.' : currentLanguage === 'en' ? 'Every breakdown has a price. We show it to you before it happens.' : 'Chaque panne a un prix. Nous vous le montrons avant qu\'elle n\'arrive.'}
+          </h1>
+          <p className="text-sm sm:text-base text-slate-doc max-w-md">
+            {currentLanguage === 'ar' ? 'يحول NextTransit إشارات OBD إلى قرار مالي واضح، موثق وقابل للتدقيق.' : currentLanguage === 'en' ? 'NextTransit turns OBD signals into a financial decision — chargeable in DZD, traced, auditable, no black box.' : 'NextTransit transforme vos signaux OBD en décision financière : réparer ou différer, chiffré en DZD, tracé, auditable — sans boîte noire.'}
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <button onClick={() => changeScreen('STRATEGIC_DASHBOARD')} className="px-6 py-3.5 rounded bg-ochre hover:bg-[#D68A4C] text-ink text-sm font-bold transition-transform hover:-translate-y-0.5 cursor-pointer">
+              {currentT('exploreApp')} →
+            </button>
+            <button onClick={() => setShowContactModal(true)} className="px-6 py-3.5 rounded border border-white/25 hover:border-white text-white text-sm font-bold transition-colors cursor-pointer">
+              {currentLanguage === 'ar' ? 'احجز موعد' : currentLanguage === 'en' ? 'Book a call' : 'Prendre Rendez-vous'}
+            </button>
           </div>
-
-          {/* Core Telemetry Indicators inside Hero */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-2 max-w-xl">
-            <div className="rounded-xl bg-white/5 border border-white/10 p-3 backdrop-blur-xs">
-              <span className="text-[10px] uppercase text-indigo-300 font-bold block tracking-wider">
-                {currentLanguage === 'ar' ? 'التوجيه اللوجستي' : currentLanguage === 'en' ? 'Territorial Routing' : 'Routage Territorial'}
-              </span>
-              <span className="text-sm font-extrabold text-white mt-0.5 block">
-                Alger • Oran • Bejaia
-              </span>
-            </div>
-            <div className="rounded-xl bg-white/5 border border-white/10 p-3 backdrop-blur-xs">
-              <span className="text-[10px] uppercase text-indigo-300 font-bold block tracking-wider">
-                {currentLanguage === 'ar' ? 'محرك القرار' : currentLanguage === 'en' ? 'Decision Engine' : 'Moteur de Décision'}
-              </span>
-              <span className="text-sm font-extrabold text-white mt-0.5 block">
-                {currentLanguage === 'ar' ? 'صيغة CAE شفافة' : currentLanguage === 'en' ? 'Transparent CAE Formula' : 'Formule CAE Transparente'}
-              </span>
-            </div>
-            <div className="hidden sm:block rounded-xl bg-white/5 border border-white/10 p-3 backdrop-blur-xs">
-              <span className="text-[10px] uppercase text-indigo-300 font-bold block tracking-wider">
-                {currentLanguage === 'ar' ? 'المعيار المعتمد' : currentLanguage === 'en' ? 'National Standard' : 'Norme Nationale'}
-              </span>
-              <span className="text-sm font-extrabold text-white mt-0.5 block">
-                DZD Compliance
-              </span>
-            </div>
-          </div>
-
-          {/* Action Buttons with high visibility */}
-          <div className="pt-4 space-y-3">
-            <div className="flex flex-col sm:flex-row flex-wrap gap-4 items-stretch sm:items-center">
-              <button
-                onClick={() => changeScreen('STRATEGIC_DASHBOARD')}
-                className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold shadow-lg shadow-indigo-900/30 transition-all cursor-pointer group"
-              >
-                {currentT('exploreApp')}
-                <ArrowRight className={`h-4 w-4 transform transition-transform ${dir === 'rtl' ? 'rotate-180' : 'group-hover:translate-x-1'}`} />
-              </button>
-
-              <button
-                onClick={() => setShowContactModal(true)}
-                className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg shadow-emerald-900/30 transition-all cursor-pointer"
-              >
-                <Calendar className="h-4 w-4 text-white" />
-                {currentLanguage === 'ar' ? 'احجز موعد عرض تجريبي' : currentLanguage === 'en' ? 'Request a Live Demo' : 'Prendre Rendez-vous'}
-              </button>
-            </div>
-
-            {/* Secondary Action Links */}
-            <div className="pt-1 flex flex-wrap items-center gap-4 text-xs text-slate-300">
-              <button
-                onClick={() => {
-                  setAuthModalIsSignUp(true);
-                  setShowAuthModal(true);
-                }}
-                className="inline-flex items-center gap-1.5 hover:text-white underline underline-offset-4 decoration-indigo-400/50 hover:decoration-indigo-400 transition-all cursor-pointer"
-              >
-                <UserPlus className="h-3.5 w-3.5 text-indigo-400" />
-                <span>{currentLanguage === 'ar' ? 'إنشاء حساب جديد (Tenant)' : currentLanguage === 'en' ? 'Sign Up / Create Account' : 'Créer un compte / S\'enregistrer'}</span>
-              </button>
-
-              <span className="text-slate-600">•</span>
-
-              <button
-                onClick={() => setIsRoleSelectorOpen(true)}
-                className="inline-flex items-center gap-1.5 hover:text-white underline underline-offset-4 decoration-indigo-400/50 hover:decoration-indigo-400 transition-all cursor-pointer"
-              >
-                <Building2 className="h-3.5 w-3.5 text-indigo-400" />
-                <span>{currentLanguage === 'ar' ? 'تبديل الأدوار والمسؤوليات' : currentLanguage === 'en' ? 'Simulate Role Dashboard' : 'Simuler un Rôle Métier'}</span>
-              </button>
-            </div>
+          <div className="flex flex-wrap gap-6 text-[11px] text-slate-doc-2 pt-2">
+            <span>{currentLanguage === 'fr' ? 'Hébergement ' : ''}<strong className="font-data text-white">100% Algérie</strong></span>
+            <span><strong className="font-data text-white">SCF-ready</strong></span>
+            <span><strong className="font-data text-white">FR · AR (RTL) · EN</strong></span>
           </div>
         </div>
 
-        {/* Small credit flag */}
-        <div className={`absolute bottom-4 ${dir === 'rtl' ? 'left-4' : 'right-4'} hidden md:flex items-center gap-2 bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-800 text-[10px] text-slate-400`}>
-          <div className="h-2 w-3 bg-emerald-600 rounded-2xs relative overflow-hidden flex flex-col">
-            <div className="h-full bg-white w-1/2 self-end" />
-            <div className="absolute inset-0 flex items-center justify-center text-[5px] text-red-600">★</div>
+        {/* Fiche CAE — signature visuelle */}
+        <div className={`relative z-10 bg-paper text-ink rounded-sm p-6 shadow-2xl ${dir === 'rtl' ? '-rotate-[0.6deg]' : 'rotate-[0.6deg]'}`}>
+          <div className="flex justify-between items-start border-b border-ink/15 pb-3 mb-4">
+            <div>
+              <div className="font-data text-[10px] uppercase tracking-wider text-ink-3">
+                {currentLanguage === 'ar' ? 'ورقة التحكيم — CAE' : currentLanguage === 'en' ? 'Arbitration Sheet — CAE' : 'Fiche d\'arbitrage — CAE'}
+              </div>
+              <div className="font-data text-[11px] text-slate-doc-2 mt-1">Véhicule TM-14 · Route C-3</div>
+            </div>
+            <span className="font-data text-[10px] font-bold uppercase text-[#B4432F] border border-[#B4432F] rounded px-2 py-1 -rotate-3">Keystone</span>
           </div>
-          <span>Souveraineté des données d\'exploitation de transport logistique en Algérie</span>
+          {[
+            { k: currentLanguage === 'ar' ? 'الكشف' : currentLanguage === 'en' ? 'Detection' : 'Détection', v: currentLanguage === 'ar' ? 'تآكل 91% (الحد 85%)' : currentLanguage === 'en' ? 'Wear 91% (threshold 85%)' : 'Usure plaquettes 91% (seuil 85%)' },
+            { k: currentLanguage === 'ar' ? 'احتمال العطل' : currentLanguage === 'en' ? 'Failure probability' : 'Probabilité de panne', v: currentLanguage === 'ar' ? '78% خلال 6 أيام' : currentLanguage === 'en' ? '78% within 6 days' : '78% sous 6 jours' },
+            { k: currentLanguage === 'ar' ? 'إصلاح الآن' : currentLanguage === 'en' ? 'Repair now' : 'Réparer maintenant', v: '18 500 DZD', cls: 'text-verified' },
+            { k: currentLanguage === 'ar' ? 'التأجيل 7 أيام' : currentLanguage === 'en' ? 'Defer 7 days' : 'Différer 7 jours', v: '1 240 000 DZD', cls: 'text-[#B4432F]' },
+          ].map((row, i) => (
+            <div key={i} className="flex justify-between items-baseline py-2 border-b border-dashed border-ink/15">
+              <span className="text-xs text-slate-doc-2">{row.k}</span>
+              <span className={`font-data text-sm font-semibold ${row.cls || ''}`}>{row.v}</span>
+            </div>
+          ))}
+          <div className="mt-4 bg-ink text-white rounded-sm px-4 py-3 flex justify-between items-center">
+            <span className="font-data text-[11px] uppercase tracking-wider text-slate-doc">
+              {currentLanguage === 'ar' ? 'توصية CAE' : currentLanguage === 'en' ? 'CAE recommendation' : 'Recommandation CAE'}
+            </span>
+            <span className="font-data text-xl font-semibold text-ochre">
+              {currentLanguage === 'ar' ? 'إصلاح' : currentLanguage === 'en' ? 'Repair' : 'Réparer'}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -953,6 +894,9 @@ export const LandingPage: React.FC = () => {
           onRequestDemo={() => setShowContactModal(true)}
         />
       </div>
+
+      {/* 12b. ROADMAP SECTION */}
+      <RoadmapSection currentLanguage={currentLanguage} />
 
       {/* 13. FAQ ACCORDION SECTION (ADDRESS OBJECTIONS) */}
       <FaqSection currentLanguage={currentLanguage} />

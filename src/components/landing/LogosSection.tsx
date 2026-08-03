@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, Award, CheckCircle2 } from 'lucide-react';
+import { Award } from 'lucide-react';
 
 interface LogosSectionProps {
   currentLanguage: string;
@@ -27,58 +27,59 @@ export const LogosSection: React.FC<LogosSectionProps> = ({ currentLanguage }) =
     { name: 'ONS / joradp.dz', sector: 'Données de marché sourcées et vérifiables' },
   ];
 
-  const certs = [
-    { code: 'Matrice de Confiance', label: 'Chaque donnée classée VÉRIFIÉ / ESTIMÉ / BENCHMARK' },
-    { code: 'SCF Ready', label: 'Architecture conforme au plan comptable algérien' },
+  const stampBadges = [
+    { code: 'VÉRIFIÉ', cls: 'border-2 border-verified text-verified -rotate-3' },
+    { code: 'ESTIMÉ', cls: 'border-2 border-estime text-estime rotate-2' },
+    { code: 'BENCHMARK', cls: 'border-2 border-benchmark text-benchmark -rotate-1' },
+    { code: 'SCF READY', cls: 'border-2 border-ochre text-ochre rotate-1' },
   ];
 
   return (
-    <div className="py-8 border-y border-slate-200/60 bg-slate-50/50 rounded-3xl space-y-8">
+    <div className="py-8 border border-white/10 bg-ink-2 rounded-3xl space-y-8 text-white">
       <div className="text-center space-y-1">
-        <span className="text-[10px] uppercase text-indigo-600 font-extrabold tracking-wider block">
+        <span className="text-[10px] uppercase text-ochre font-data font-bold tracking-wider block">
           {isAr ? 'الثقة والشفافية' : currentLanguage === 'en' ? 'TRUST & TRANSPARENCY' : 'CONFIANCE & TRANSPARENCE'}
         </span>
-        <h3 className="text-xs font-bold text-slate-500 font-sans">
+        <h3 className="text-xs font-display font-medium text-slate-doc">
           {partnerTitle}
         </h3>
       </div>
 
       {/* Credibility Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 px-6 items-center">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-6 items-center">
         {credibility.map((co, index) => (
           <div 
             key={index} 
-            className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white border border-slate-200/50 hover:border-indigo-100 hover:shadow-xs transition duration-200 text-center"
+            className="flex flex-col items-center justify-center p-3.5 rounded-xl bg-ink-3 border border-white/10 hover:border-ochre/40 transition duration-200 text-center"
           >
-            <span className="font-black text-slate-800 tracking-tight text-xs block">
+            <span className="font-display font-semibold text-white tracking-tight text-xs block">
               {co.name}
             </span>
-            <span className="text-[9px] text-slate-400 font-medium font-sans mt-0.5">
+            <span className="text-[9px] text-slate-doc font-data mt-1">
               {co.sector}
             </span>
           </div>
         ))}
       </div>
 
-      {/* Method Badges Row */}
-      <div className="flex flex-wrap items-center justify-center gap-6 px-6 pt-2 border-t border-slate-200/30">
-        <span className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
-          <Award className="h-3.5 w-3.5 text-indigo-500" />
+      {/* Audit Stamps Row */}
+      <div className="flex flex-wrap items-center justify-center gap-6 px-6 pt-4 border-t border-white/10">
+        <span className="text-[10px] font-data font-semibold text-slate-doc uppercase flex items-center gap-1.5">
+          <Award className="h-3.5 w-3.5 text-ochre" />
           {certTitle}:
         </span>
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          {certs.map((c, i) => (
-            <div 
-              key={i} 
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-800 text-[10px] font-bold"
+        <div className="flex flex-wrap items-center justify-center gap-4">
+          {stampBadges.map((badge, i) => (
+            <span
+              key={i}
+              className={`font-data text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded bg-transparent ${badge.cls}`}
             >
-              <ShieldCheck className="h-3 w-3 text-emerald-600" />
-              <span>{c.code}</span>
-              <span className="text-emerald-500 font-normal">| {c.label}</span>
-            </div>
+              {badge.code}
+            </span>
           ))}
         </div>
       </div>
     </div>
   );
 };
+
