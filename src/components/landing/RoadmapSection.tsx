@@ -10,7 +10,7 @@ const PHASES = [
     desc: { fr: 'CAE, règles R1-R7, multi-tenant RLS, SSO entreprise.', en: 'CAE, R1-R7 rules, multi-tenant RLS, enterprise SSO.', ar: 'محرك CAE، قواعد R1-R7، عزل بيانات متعدد المستأجرين.' } },
   { phase: 'Phase 2', active: false, status: { fr: 'Roadmap', en: 'Roadmap', ar: 'خارطة الطريق' },
     title: { fr: 'IoT temps réel & IA prédictive', en: 'Real-time IoT & predictive AI', ar: 'إنترنت الأشياء والذكاء التنبؤي' },
-    desc: { fr: 'Connecteurs Geotab/Samsara, streaming OBD, alerte 72h avant seuil critique.', en: 'Geotab/Samsara connectors, OBD streaming, 72h pre-alert.', ar: 'موصلات جيوتاب/سامسارا، بث OBD، تنبيه قبل 72 ساعة.' } },
+    desc: { fr: 'Connecteurs modules & plateforme propriétaires, streaming OBD, alerte 72h avant seuil critique.', en: 'Proprietary module connectors & platform, OBD streaming, 72h pre-alert before critical threshold.', ar: 'موصلات ومنصة خاصة بنا، بث OBD، تنبيه قبل 72 ساعة من الحد الحرج.' } },
   { phase: 'Phase 3', active: false, status: { fr: 'Roadmap', en: 'Roadmap', ar: 'خارطة الطريق' },
     title: { fr: 'Logistique & approvisionnement', en: 'Logistics & procurement', ar: 'اللوجستيات والتوريد' },
     desc: { fr: 'Commandes fournisseurs automatisées, RFID atelier, calendriers PM.', en: 'Automated supplier orders, workshop RFID, PM schedules.', ar: 'طلبات موردين آلية، تتبع RFID، جداول الصيانة.' } },

@@ -78,7 +78,7 @@ export const ComparisonSection: React.FC<ComparisonSectionProps> = ({ currentLan
         <span className="text-[10px] uppercase text-indigo-600 font-extrabold tracking-wider block">
           {isAr ? 'عائد استثماري فوري' : currentLanguage === 'en' ? 'MARKET COMPARISON' : 'COMPARAISON RATIONNELLE'}
         </span>
-        <h2 className="text-xl sm:text-2xl font-extrabold text-slate-950 tracking-tight">
+        <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
           {heading}
         </h2>
         <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">

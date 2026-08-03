@@ -231,7 +231,7 @@ Pour transformer **NextTransit** en une solution SaaS de niveau mondial (World-C
 +------------------------------------+-----------------------------------+-------------------------------+
 | PHASE 1 : Socle Entreprise & RLS   | PHASE 2 : IoT CanBus & IA         | PHASE 3 : Logistique & EDI   |
 | (Q1-Q2)                            | (Q2-Q3)                           | (Q3-Q4)                       |
-|  • Isolation RLS Supabase          |  • Connecteurs Geotab / Samsara   |  • Commandes auto EDI API     |
+|  • Isolation RLS Supabase          |  • Modules & plateforme prop.     |  • Commandes auto EDI API     |
 |  • SAML 2.0 / Okta / Azure AD      |  • WebSockets OBD-II en direct    |  • Traçabilité RFID / Code-B. |
 |  • Audit Logs infalsifiables       |  • IA Prédictive avant alerte R1    |  • Calendriers PM Schedules   |
 +------------------------------------+-----------------------------------+-------------------------------+
@@ -253,7 +253,7 @@ Pour transformer **NextTransit** en une solution SaaS de niveau mondial (World-C
 ### Phase 2 : IoT CanBus / OBD-II en Temps Réel & IA Prédictive (Q2-Q3)
 * **Objectif** : Passer de la télématique déclarative au streaming IoT en temps réel avec prédiction de pannes avant casse.
 * **Livrables techniques** :
-  1. **Connecteurs OEM & Télématiques** : Intégrations API natives avec les principaux boîtiers du marché (**Geotab**, **Samsara**, **Teltonika**, **Ruptela**, **Webfleet**).
+  1. **Connecteurs modules & plateforme propriétaires** : Intégrations directes de nos propres modules connectés matériels et de notre plateforme IoT dédiée, assurant une remontée directe sans dépendances tierces (avec compatibilité ouverte Teltonika, Ruptela, Webfleet).
   2. **Passerelle de streaming (WebSockets / MQTT)** : Mises à jour en direct (`sub-second`) de la position GPS et des codes défauts OBD-II dans le **Fleet Health Grid**.
   3. **IA Prédictive (Gemini & Machine Learning Edge)** :
      * Modèle de régression sur la dégradation des freins, la température de transmission et les vibrations moteur.

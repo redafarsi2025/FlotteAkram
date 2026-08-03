@@ -510,7 +510,7 @@ export const LandingPage: React.FC = () => {
           <span className="text-[10px] uppercase text-indigo-600 font-extrabold tracking-wider block">
             {currentLanguage === 'ar' ? 'تتبع فوري ومحاكاة' : currentLanguage === 'en' ? 'GEOGRAPHIC REALITY' : 'CONSEILS D\'ÉCONOMIE TERRITORIALE'}
           </span>
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-950 flex items-center justify-center gap-2">
+          <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center justify-center gap-2">
             <Activity className="h-5 w-5 text-indigo-600" />
             {currentT('scenariosTitle')}
           </h2>
@@ -798,7 +798,7 @@ export const LandingPage: React.FC = () => {
           <span className="text-[10px] uppercase text-indigo-600 font-extrabold tracking-wider bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full inline-block">
             {currentLanguage === 'ar' ? 'البرنامج التجريبي - المرحلة 0' : currentLanguage === 'en' ? 'PHASE 0 PILOT PROGRAM' : 'PROGRAMME PILOTE PHASE 0'}
           </span>
-          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-950 tracking-tight">
+          <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
             {currentLanguage === 'ar' ? 'انضم إلى برنامجنا التجريبي' : currentLanguage === 'en' ? 'Join Our Pilot Program' : 'Rejoignez notre programme pilote'}
           </h2>
           <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
