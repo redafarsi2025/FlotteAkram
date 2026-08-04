@@ -37,12 +37,12 @@ export const MechanicMobileQueue: React.FC = () => {
 
   const assignedWorkOrders = workOrders.filter((wo) => wo.status !== 'Closed');
 
-  const handleSimulateOBDScan = (e: React.FormEvent) => {
+  const handleSimulateOBDScan = async (e: React.FormEvent) => {
     e.preventDefault();
     const vehicle = vehicles.find((v) => v.id === scanVehicleId);
     if (!vehicle) return;
 
-    logOBDFault(scanVehicleId, {
+    await logOBDFault(scanVehicleId, {
       code: scanFaultCode,
       name: scanFaultName,
       severity: scanSeverity,

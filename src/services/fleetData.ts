@@ -55,22 +55,50 @@ export function clearFleetCache(keyPrefix?: string): void {
 }
 
 /**
+ * Maps any legacy string or UUID tenant identifier to its corresponding robust UUID.
+ */
+export function getTenantUuid(tenantId: string | null | undefined): string {
+  if (!tenantId) return 'c0a80101-0000-0000-0000-000000000001';
+  
+  // If it is already a valid UUID, return it
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (uuidRegex.test(tenantId)) {
+    return tenantId.toLowerCase();
+  }
+  
+  // Map legacy string identifiers to the respective seeded UUIDs
+  switch (tenantId) {
+    case 'TNT-NEXTR-001':
+      return 'c0a80101-0000-0000-0000-000000000001';
+    case 'TNT-EUR-002':
+    case 'TNT-NEXTR-002':
+      return 'c0a80101-0000-0000-0000-000000000002';
+    case 'TNT-MUN-003':
+      return 'c0a80101-0000-0000-0000-000000000003';
+    case 'TNT-DZD-004':
+      return 'c0a80101-0000-0000-0000-000000000004';
+    default:
+      return 'c0a80101-0000-0000-0000-000000000001';
+  }
+}
+
+/**
  * Helper to dynamically determine the current tenant context from active Supabase Auth session or localStorage fallback
  */
 export async function getCurrentTenantId(): Promise<string> {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     const userMetadataTenant = session?.user?.user_metadata?.tenant_id || session?.user?.app_metadata?.tenant_id;
-    if (userMetadataTenant) return userMetadataTenant;
+    if (userMetadataTenant) return getTenantUuid(userMetadataTenant);
   } catch (err) {
     console.warn('Error fetching Supabase session for tenant isolation:', err);
   }
   
   try {
     const stored = localStorage.getItem('nexttransit_active_tenant_id');
-    if (stored) return stored;
+    if (stored) return getTenantUuid(stored);
   } catch (e) {}
-  return 'TNT-NEXTR-001';
+  return 'c0a80101-0000-0000-0000-000000000001';
 }
 
 /**
@@ -731,6 +759,7 @@ export async function syncLogOBDFaultToSupabase(
   }
 ): Promise<boolean> {
   try {
+    const tenantId = await getCurrentTenantId();
     const { error } = await supabase.from('fleet_alerts').insert([
       {
         rule_id: 'R1',
@@ -740,6 +769,7 @@ export async function syncLogOBDFaultToSupabase(
         vehicle_id: vehicleId,
         part_id: fault.required_part_id,
         read: false,
+        tenant_id: tenantId,
       },
     ]);
     if (error) {
@@ -759,9 +789,10 @@ export async function syncCreateWorkOrderToSupabase(
   workOrder: Omit<WorkOrder, 'id'>
 ): Promise<WorkOrder | null> {
   try {
+    const tenantId = await getCurrentTenantId();
     const { data, error } = await supabase
       .from('work_orders')
-      .insert([workOrder])
+      .insert([{ ...workOrder, tenant_id: tenantId }])
       .select()
       .single();
     if (error || !data) {
@@ -781,7 +812,10 @@ export async function syncSubmitDriverIncidentToSupabase(
   incident: Omit<Incident, 'id'>
 ): Promise<boolean> {
   try {
-    const { error } = await supabase.from('driver_incidents').insert([incident]);
+    const tenantId = await getCurrentTenantId();
+    const { error } = await supabase.from('driver_incidents').insert([
+      { ...incident, tenant_id: tenantId }
+    ]);
     if (error) {
       console.warn('Sync submitDriverIncident error:', error.message);
       return false;

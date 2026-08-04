@@ -9,6 +9,8 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
+-- Keep schema file compatible with managed Supabase database environments (where auth schema and tables are pre-populated and protected)
+
 -- Clean existing schema if re-running
 -- DROP TABLE IF EXISTS public.audit_logs CASCADE;
 -- DROP TABLE IF EXISTS public.business_glossary CASCADE;

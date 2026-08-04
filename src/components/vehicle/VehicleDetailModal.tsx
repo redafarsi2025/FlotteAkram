@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useFleet } from '../../context/FleetContext';
 import { useLocalization } from '../../context/LocalizationContext';
-import { VehicleStatus, WorkOrder } from '../../types';
+import { VehicleStatus, WorkOrder, Warranty } from '../../types';
+import { warrantyService } from '../../services/warrantyService';
 import { KPIBadge } from '../common/KPIBadge';
 import {
   X,
@@ -26,7 +27,7 @@ interface VehicleDetailModalProps {
   onClose: () => void;
 }
 
-type TabType = 'summary' | 'diagnostics' | 'history' | 'cost' | 'parts' | 'work_orders';
+type TabType = 'summary' | 'diagnostics' | 'history' | 'cost' | 'parts' | 'work_orders' | 'warranty';
 
 export const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({
   vehicleId,
@@ -48,6 +49,22 @@ export const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({
   const vehicle = vehicles.find((v) => v.id === vehicleId);
   const [showSubscores, setShowSubscores] = useState(false);
   const [showCreateWOModal, setShowCreateWOModal] = useState(false);
+  
+  const [warranty, setWarranty] = useState<Warranty | null>(null);
+  const [warrantyLoading, setWarrantyLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (vehicleId) {
+      warrantyService.getWarrantyStatus(vehicleId).then(data => {
+        if (isMounted) {
+          setWarranty(data);
+          setWarrantyLoading(false);
+        }
+      });
+    }
+    return () => { isMounted = false; };
+  }, [vehicleId]);
 
   // Form state for Work Order creation
   const [woType, setWoType] = useState<WorkOrder['type']>('Corrective');
@@ -67,12 +84,12 @@ export const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({
       case 'LOGISTICS_CONTROLLER':
         return ['parts'];
       case 'MECHANIC':
-        return ['summary', 'diagnostics', 'history', 'parts', 'work_orders'];
+        return ['summary', 'diagnostics', 'history', 'parts', 'work_orders', 'warranty'];
       case 'DRIVER':
         return ['summary'];
       default:
         // TECHNICAL_CONTROLLER or FLEET_MANAGER -> full access
-        return ['summary', 'diagnostics', 'history', 'cost', 'parts', 'work_orders'];
+        return ['summary', 'diagnostics', 'history', 'cost', 'parts', 'work_orders', 'warranty'];
     }
   };
 
@@ -364,6 +381,19 @@ export const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({
             >
               <Wrench className="h-4 w-4" />
               <span>{t('tab.work_orders', {}, 'Work Orders')} ({vehicleWorkOrders.length})</span>
+            </button>
+          )}
+          {allowedTabs.includes('warranty') && (
+            <button
+              onClick={() => setActiveTab('warranty')}
+              className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-bold transition cursor-pointer whitespace-nowrap ${
+                currentTab === 'warranty'
+                  ? 'border-indigo-600 text-indigo-600 bg-white'
+                  : 'border-transparent text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <FileText className="h-4 w-4" />
+              <span>{t('tab.warranty', {}, 'Warranty')}</span>
             </button>
           )}
         </div>
@@ -857,6 +887,84 @@ export const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({
               )}
             </div>
           )}
+
+          {/* WARRANTY TAB */}
+          {currentTab === 'warranty' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-bold text-slate-900 text-base">
+                    {t('warranty.status_title', { name: vehicle.name }, `Warranty Status for ${vehicle.name}`)}
+                  </h4>
+                  <p className="text-xs text-slate-600">
+                    {t('warranty.status_subtitle', {}, 'Track coverage to avoid voiding manufacturer warranty')}
+                  </p>
+                </div>
+              </div>
+              
+              {warrantyLoading ? (
+                <div className="p-8 text-center text-slate-500">{t('warranty.loading', {}, 'Loading warranty info...')}</div>
+              ) : warranty ? (
+                <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h5 className="text-lg font-bold text-slate-900">{warranty.manufacturer} {t('warranty.title', {}, 'Warranty')}</h5>
+                      <p className="text-sm text-slate-500">{t('warranty.id_label', {}, 'ID:')} {warranty.id}</p>
+                    </div>
+                    <div className={`px-3 py-1 rounded-full text-xs font-bold ${
+                      warranty.status === 'active' ? 'bg-emerald-100 text-emerald-700' :
+                      warranty.status === 'expiring_soon' ? 'bg-amber-100 text-amber-700' :
+                      'bg-rose-100 text-rose-700'
+                    }`}>
+                      {t(`warranty.status.${warranty.status}`, {}, warranty.status.toUpperCase())}
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+                    <div>
+                      <div className="text-xs font-bold uppercase text-slate-500 mb-1">{t('warranty.expiration_details', {}, 'Expiration Details')}</div>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-slate-400" />
+                          <span className="text-sm text-slate-700">{t('warranty.date', {}, 'Date:')} <strong className="text-slate-900">{warranty.expiry_date || t('warranty.na', {}, 'N/A')}</strong></span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Activity className="h-4 w-4 text-slate-400" />
+                          <span className="text-sm text-slate-700">{t('warranty.mileage', {}, 'Mileage:')} <strong className="text-slate-900">{warranty.expiry_mileage ? `${warranty.expiry_mileage.toLocaleString()} km` : t('warranty.na', {}, 'N/A')}</strong></span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-50">
+                          <span className="text-sm text-slate-500">{t('warranty.current_mileage', { mileage: vehicle.mileage.toLocaleString() }, `Current Mileage: ${vehicle.mileage.toLocaleString()} km`)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <div className="text-xs font-bold uppercase text-slate-500 mb-1">{t('warranty.covered_systems', {}, 'Covered Systems')}</div>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {warranty.covered_systems.map((sys, idx) => (
+                          <span key={idx} className="inline-flex items-center px-2 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200">
+                            {t(`warranty.system.${sys}`, {}, sys)}
+                          </span>
+                        ))}
+                        {warranty.covered_systems.length === 0 && (
+                          <span className="text-sm text-slate-500 italic">{t('warranty.no_systems_listed', {}, 'No specific systems listed')}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-12 flex flex-col items-center justify-center text-center">
+                  <AlertCircle className="h-10 w-10 text-slate-400 mb-3" />
+                  <h5 className="text-slate-900 font-bold mb-1">{t('warranty.no_active_warranty', {}, 'No Active Warranty')}</h5>
+                  <p className="text-slate-500 text-sm max-w-sm">
+                    {t('warranty.no_active_warranty_desc', {}, 'There is no manufacturer warranty record currently associated with this vehicle.')}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
 
         {/* Modal Footer */}

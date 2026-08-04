@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Clock,
   AlertCircle,
+  AlertTriangle,
   UserCheck,
   DollarSign,
   PackageCheck,
@@ -169,6 +170,12 @@ export const WorkOrderQueue: React.FC = () => {
                     <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
                       {order.vehicle_plate}
                     </span>
+                    {order.warranty_risk && (
+                      <span className="text-xs font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded inline-flex items-center gap-1" title={t('warranty.risk_tooltip', {}, 'Proposed action risks voiding manufacturer warranty')}>
+                        <AlertTriangle className="h-3 w-3" />
+                        {t('warranty.risk_badge', {}, 'Warranty Risk')}
+                      </span>
+                    )}
                   </div>
                   <span className="text-xs font-semibold text-slate-500 mt-0.5 block">
                     Type: {order.type} Intervention

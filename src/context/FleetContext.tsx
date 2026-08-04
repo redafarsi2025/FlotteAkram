@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
@@ -84,7 +84,7 @@ interface FleetContextType {
       required_part_id?: string;
       required_intervention: string;
     }
-  ) => void;
+  ) => Promise<void>;
   createWorkOrder: (order: {
     vehicle_id: string;
     type: WorkOrder['type'];
@@ -95,7 +95,7 @@ interface FleetContextType {
     assigned_mechanic_id: string;
     assigned_mechanic_name: string;
     related_fault_code?: string;
-  }) => void;
+  }) => Promise<void>;
   closeWorkOrder: (orderId: string, afterNotes: string) => void;
   submitDriverIncident: (
     vehicleId: string,
@@ -166,7 +166,7 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     } catch (e) {
       console.warn('Failed to load active tenant ID', e);
     }
-    return 'TNT-NEXTR-001';
+    return 'c0a80101-0000-0000-0000-000000000001';
   });
 
   // 1. Listen to Supabase Auth state changes (JWT state) to automatically configure currentRole and activeTenantId
@@ -268,7 +268,7 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     return found;
   }, [tenantConfigs, activeTenantId, costRecords]);
 
-  const updateTenantConfig = (id: string, updated: Partial<TenantConfig>) => {
+  const updateTenantConfig = useCallback((id: string, updated: Partial<TenantConfig>) => {
     setTenantConfigs((prev) =>
       prev.map((t) => {
         if (t.id === id) {
@@ -277,7 +277,6 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             ...updated,
             lastUpdated: new Date().toISOString().split('T')[0],
           };
-
           // Asynchronously attempt to sync with Supabase tenant_configs table
           supabase
             .from('tenant_configs')
@@ -318,13 +317,12 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 console.warn('Supabase tenant_configs upsert network note:', err);
               }
             );
-
           return merged;
         }
         return t;
       })
     );
-  };
+  }, []);
 
   const setActiveTenantId = (id: string) => {
     if (tenantConfigs.some((t) => t.id === id)) {
@@ -389,7 +387,7 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [goldenPathAStatus, setGoldenPathAStatus] = useState({ active: false, currentStep: 0 });
   const [goldenPathBStatus, setGoldenPathBStatus] = useState({ active: false, currentStep: 0 });
 
-  const changeScreen = (screen: ScreenId, shouldNavigate: boolean = true) => {
+  const changeScreen = useCallback((screen: ScreenId, shouldNavigate: boolean = true) => {
     setCurrentScreen(screen);
     if (shouldNavigate) {
       const targetRoute = screenToRouteMap[screen];
@@ -397,7 +395,7 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         navigate(targetRoute);
       }
     }
-  };
+  }, [navigate]);
 
   // When switching roles, ensure current screen is accessible by new role or navigate to role's workspace
   const changeRole = (newRole: Role, preferredScreen?: ScreenId) => {
@@ -459,7 +457,7 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   // Rule R1, R3, R4 Implementation: Log an OBD Fault
-  const logOBDFault = (
+  const logOBDFault = async (
     vehicleId: string,
     fault: {
       code: string;
@@ -469,6 +467,23 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       required_intervention: string;
     }
   ) => {
+    // Check warranty risk for R1 extension
+    let warrantyRiskWarning = '';
+    if (fault.severity === 'Critical') {
+      const vehicle = vehicles.find((v) => v.id === vehicleId);
+      if (vehicle) {
+        const { warrantyService } = await import('../services/warrantyService');
+        const isRisk = await warrantyService.checkWarrantyRisk(
+          vehicleId,
+          fault.required_intervention,
+          vehicle.mileage
+        );
+        if (isRisk) {
+          warrantyRiskWarning = ' ⚠️ WARRANTY RISK: Proposed action may void manufacturer warranty.';
+        }
+      }
+    }
+
     // Optimistic / Local sync
     setVehicles((prevVehicles) =>
       prevVehicles.map((v) => {
@@ -503,7 +518,7 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         addAlert({
           rule_id: 'R3',
           title: `R1+R3 Alert: ${fault.severity} Fault Logged on ${v.plate}`,
-          description: `Vehicle ${v.name} reported fault ${fault.code}. ${partInfo}`,
+          description: `Vehicle ${v.name} reported fault ${fault.code}. ${partInfo}${warrantyRiskWarning}`,
           severity: fault.severity === 'Critical' ? 'critical' : 'warning',
           vehicle_id: v.id,
           part_id: fault.required_part_id,
@@ -583,7 +598,7 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   // Create Work Order
-  const createWorkOrder = (order: {
+  const createWorkOrder = async (order: {
     vehicle_id: string;
     type: WorkOrder['type'];
     parts_used: { part_id: string; name: string; quantity: number; unit_cost: number }[];
@@ -596,6 +611,14 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }) => {
     const vehicle = vehicles.find((v) => v.id === order.vehicle_id);
     if (!vehicle) return;
+
+    // Check Warranty Risk (Rule R1 Extension)
+    const { warrantyService } = await import('../services/warrantyService');
+    const isRisk = await warrantyService.checkWarrantyRisk(
+      order.vehicle_id, 
+      order.before_notes, 
+      vehicle.mileage
+    );
 
     const laborCost = order.labor_hours * order.hourly_rate;
     const newWorkOrder: WorkOrder = {
@@ -616,6 +639,7 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       assigned_mechanic_id: order.assigned_mechanic_id,
       assigned_mechanic_name: order.assigned_mechanic_name,
       related_fault_code: order.related_fault_code,
+      warranty_risk: isRisk,
     };
 
     setWorkOrders((prev) => [newWorkOrder, ...prev]);

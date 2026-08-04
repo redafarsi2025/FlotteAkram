@@ -122,6 +122,19 @@ export interface WorkOrder {
   assigned_mechanic_name: string;
   related_fault_code?: string;
   related_incident_id?: string;
+  warranty_risk?: boolean;
+}
+
+export interface Warranty {
+  id: string;
+  tenant_id?: string;
+  vehicle_id: string;
+  manufacturer: string;
+  expiry_date: string | null;
+  expiry_mileage: number | null;
+  covered_systems: string[];
+  status: 'active' | 'expiring_soon' | 'expired';
+  created_at?: string;
 }
 
 export interface InventoryItem {
@@ -219,4 +232,33 @@ export interface TenantConfig {
   accentColor?: string; // Custom accent color (e.g. "#059669")
   brandTagline?: string; // Custom tagline (e.g. "Excellence in Regional Transport")
   lastUpdated: string; // e.g. "2026-08-01"
+}
+
+
+export interface FuelLog {
+  id: string;
+  vehicle_id: string;
+  tenant_id: string;
+  liters: number;
+  cost: number;
+  odometer: number;
+  date: string;
+  route_id?: string;
+  anomaly_flag: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AuditLog {
+  id: string;
+  tenant_id: string;
+  entity_name?: string;
+  entity_id?: string;
+  actor_id?: string;
+  action: string;
+  previous_value?: string;
+  new_value: string;
+  timestamp: string;
+  user_email: string;
+  user_role: string;
 }

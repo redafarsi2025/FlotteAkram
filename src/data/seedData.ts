@@ -224,7 +224,7 @@ export const RBAC_MATRIX: Record<ScreenId, Record<Role, PermissionLevel>> = {
 
 export const INITIAL_TENANT_CONFIGS: TenantConfig[] = [
   {
-    id: 'TNT-NEXTR-001',
+    id: 'c0a80101-0000-0000-0000-000000000001',
     societyName: 'NextTransit Metro Fleet Society S.A.',
     currency: 'USD ($)',
     currencySymbol: '$',
@@ -250,7 +250,7 @@ export const INITIAL_TENANT_CONFIGS: TenantConfig[] = [
     lastUpdated: '2026-08-01',
   },
   {
-    id: 'TNT-EUR-002',
+    id: 'c0a80101-0000-0000-0000-000000000002',
     societyName: 'EuroTransit Express Logistics GmbH',
     currency: 'EUR (€)',
     currencySymbol: '€',
@@ -276,7 +276,7 @@ export const INITIAL_TENANT_CONFIGS: TenantConfig[] = [
     lastUpdated: '2026-07-28',
   },
   {
-    id: 'TNT-MUN-003',
+    id: 'c0a80101-0000-0000-0000-000000000003',
     societyName: 'Municipal Transit Authority Society',
     currency: 'USD ($)',
     currencySymbol: '$',
@@ -302,7 +302,7 @@ export const INITIAL_TENANT_CONFIGS: TenantConfig[] = [
     lastUpdated: '2026-07-15',
   },
   {
-    id: 'TNT-DZD-004',
+    id: 'c0a80101-0000-0000-0000-000000000004',
     societyName: 'Société Nationale de Transit Algérie (SNTA)',
     currency: 'DZD (DA)',
     currencySymbol: 'DA',
