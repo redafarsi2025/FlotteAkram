@@ -21,6 +21,8 @@ import {
   Fuel,
   Sparkles,
   Radio,
+  Mail,
+  CreditCard,
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
@@ -133,6 +135,18 @@ export const Sidebar: React.FC = () => {
       label: t('nav.translation_center', {}, 'Translation Center'),
       icon: Globe,
       description: t('nav.translation_desc', {}, 'Enterprise localization, Gemini AI & RTL'),
+    },
+    {
+      id: 'INVITATIONS',
+      label: 'User Invitations',
+      icon: Mail,
+      description: 'Invite users & assign RBAC roles',
+    },
+    {
+      id: 'BILLING',
+      label: 'Billing & SaaS Plan',
+      icon: CreditCard,
+      description: 'Subscription status & company billing',
     },
   ];
 

@@ -1,12 +1,12 @@
 export type Role =
+  | 'SUPER_ADMIN'
   | 'DIRECTOR'
-  | 'MGMT_CONTROLLER'
-  | 'TECHNICAL_CONTROLLER'
-  | 'LOGISTICS_CONTROLLER'
   | 'FLEET_MANAGER'
+  | 'MAINTENANCE_MANAGER'
+  | 'FINANCE'
+  | 'OPERATIONS'
   | 'MECHANIC'
-  | 'DRIVER'
-  | 'UNASSIGNED';
+  | 'DRIVER';
 
 export interface RoleInfo {
   id: Role;
@@ -34,20 +34,65 @@ export type ScreenId =
   | 'SAFETY_PERFORMANCE'
   | 'FUEL_LOGS'
   | 'TELEMETRY_STREAM'
-  | 'AUDIT_LOG';
+  | 'AUDIT_LOG'
+  | 'INVITATIONS'
+  | 'BILLING'
+  | 'FORBIDDEN_403';
 
 export type PermissionLevel = 'full' | 'view' | 'none' | 'resolve' | 'parts_status' | 'assigned_only' | 'own_only' | 'submit';
 
 export const DEFAULT_ROLE_SCREENS: Record<Role, ScreenId> = {
+  SUPER_ADMIN: 'TENANT_CONFIG',
   DIRECTOR: 'STRATEGIC_DASHBOARD',
   FLEET_MANAGER: 'FLEET_HEALTH_GRID',
-  TECHNICAL_CONTROLLER: 'WORK_ORDER_QUEUE',
-  MGMT_CONTROLLER: 'VARIANCE_DASHBOARD',
-  LOGISTICS_CONTROLLER: 'INVENTORY_DASHBOARD',
+  MAINTENANCE_MANAGER: 'WORK_ORDER_QUEUE',
+  FINANCE: 'VARIANCE_DASHBOARD',
+  OPERATIONS: 'INVENTORY_DASHBOARD',
   MECHANIC: 'MECHANIC_MOBILE_QUEUE',
   DRIVER: 'DRIVER_MOBILE_VIEW',
-  UNASSIGNED: 'LANDING_PAGE',
 };
+
+export interface Company {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
+export interface UserProfile {
+  id: string;
+  auth_user_id: string;
+  tenant_id: string;
+  company_id: string;
+  full_name: string;
+  email: string;
+  phone?: string;
+  role: Role;
+  status: 'pending' | 'active' | 'disabled';
+  invited_by?: string;
+  created_at: string;
+}
+
+export interface Subscription {
+  id: string;
+  company_id: string;
+  plan: 'enterprise_trial' | 'professional' | 'enterprise';
+  status: 'trial' | 'active' | 'past_due' | 'cancelled';
+  current_period_end: string;
+  created_at: string;
+}
+
+export interface Invitation {
+  id: string;
+  tenant_id: string;
+  company_id?: string;
+  email: string;
+  role: Role;
+  invited_by: string;
+  token: string;
+  expires_at: string;
+  accepted_at?: string | null;
+  created_at?: string;
+}
 
 export type VehicleStatus = 'Healthy' | 'Attention' | 'Critical' | 'Unknown';
 export type VehicleClassification = 'Keystone' | 'Standard';

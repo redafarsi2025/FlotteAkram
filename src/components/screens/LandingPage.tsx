@@ -1112,7 +1112,7 @@ export const LandingPage: React.FC = () => {
 
       {/* Auth Modal Trigger */}
       {showAuthModal && (
-        <AuthModal onClose={() => setShowAuthModal(false)} initialIsSignUp={authModalIsSignUp} />
+        <AuthModal onClose={() => setShowAuthModal(false)} initialTab={authModalIsSignUp ? 'register' : 'login'} />
       )}
 
       {/* Live Calendar booking Modal */}

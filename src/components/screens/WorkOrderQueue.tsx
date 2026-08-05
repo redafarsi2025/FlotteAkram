@@ -120,9 +120,10 @@ export const WorkOrderQueue: React.FC = () => {
 
         <div className="flex items-center gap-3">
           <KPIBadge type="Calculated" formula="Labor Cost + Parts Cost = Total Repair Cost" />
-          {(currentRole === 'TECHNICAL_CONTROLLER' ||
+          {(currentRole === 'MAINTENANCE_MANAGER' ||
             currentRole === 'FLEET_MANAGER' ||
             currentRole === 'MECHANIC' ||
+            currentRole === 'SUPER_ADMIN' ||
             currentRole === 'DIRECTOR') && (
             <button
               onClick={() => setIsCreateModalOpen(true)}

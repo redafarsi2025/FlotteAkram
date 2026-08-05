@@ -18,6 +18,9 @@ export const routeToScreenMap: Record<string, ScreenId> = {
   '/fuel': 'FUEL_LOGS',
   '/telemetry': 'TELEMETRY_STREAM',
   '/audit': 'AUDIT_LOG',
+  '/invitations': 'INVITATIONS',
+  '/billing': 'BILLING',
+  '/forbidden': 'FORBIDDEN_403',
 };
 
 export const screenToRouteMap: Record<ScreenId, string> = {
@@ -38,4 +41,7 @@ export const screenToRouteMap: Record<ScreenId, string> = {
   FUEL_LOGS: '/fuel',
   TELEMETRY_STREAM: '/telemetry',
   AUDIT_LOG: '/audit',
+  INVITATIONS: '/invitations',
+  BILLING: '/billing',
+  FORBIDDEN_403: '/forbidden',
 };

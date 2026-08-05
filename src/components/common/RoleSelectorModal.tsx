@@ -25,16 +25,18 @@ export const RoleSelectorModal: React.FC<RoleSelectorModalProps> = ({ onClose })
 
   const getRoleIcon = (roleId: Role) => {
     switch (roleId) {
+      case 'SUPER_ADMIN':
+        return ShieldCheck;
       case 'DIRECTOR':
         return TrendingUp;
-      case 'MGMT_CONTROLLER':
-        return ShieldCheck;
-      case 'TECHNICAL_CONTROLLER':
-        return Activity;
-      case 'LOGISTICS_CONTROLLER':
-        return Package;
       case 'FLEET_MANAGER':
         return UserCheck;
+      case 'MAINTENANCE_MANAGER':
+        return Activity;
+      case 'FINANCE':
+        return ShieldCheck;
+      case 'OPERATIONS':
+        return Package;
       case 'MECHANIC':
         return Wrench;
       case 'DRIVER':

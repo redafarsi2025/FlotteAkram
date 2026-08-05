@@ -28,6 +28,8 @@ import {
   VehicleClassification,
   TenantConfig,
   FuelLog,
+  UserProfile,
+  Subscription,
   DEFAULT_ROLE_SCREENS,
 } from '../types';
 import { fuelService, INITIAL_SEED_FUEL_LOGS } from '../services/fuelService';
@@ -61,7 +63,10 @@ interface FleetContextType {
   goldenPathAStatus: { active: boolean; currentStep: number };
   goldenPathBStatus: { active: boolean; currentStep: number };
   currentUser: User | null;
+  userProfile: UserProfile | null;
+  subscription: Subscription | null;
   syncStatus: 'online' | 'offline' | 'syncing' | 'error';
+  refreshUserSession: () => Promise<void>;
 
   // Tenant Configuration State & Actions
   tenantConfigs: TenantConfig[];
@@ -143,7 +148,51 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [isRoleSelectorOpen, setIsRoleSelectorOpen] = useState<boolean>(false); // Start false so Landing Page shows clean first
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [syncStatus, setSyncStatus] = useState<'online' | 'offline' | 'syncing' | 'error'>('online');
+
+  const refreshUserSession = useCallback(async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setCurrentUser(session.user);
+        
+        // Fetch User Profile from public.users table
+        const { data: profile } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profile) {
+          setUserProfile(profile as UserProfile);
+          setCurrentRole(profile.role as Role);
+          if (profile.tenant_id) {
+            setActiveTenantIdState(profile.tenant_id);
+          }
+
+          // Fetch Company Subscription
+          if (profile.company_id) {
+            const { data: sub } = await supabase
+              .from('subscriptions')
+              .select('*')
+              .eq('company_id', profile.company_id)
+              .single();
+            if (sub) {
+              setSubscription(sub as Subscription);
+            }
+          }
+        }
+      } else {
+        setCurrentUser(null);
+        setUserProfile(null);
+        setSubscription(null);
+      }
+    } catch (e) {
+      console.warn('Error refreshing user session:', e);
+    }
+  }, []);
 
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -235,40 +284,18 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     return 'c0a80101-0000-0000-0000-000000000001';
   });
 
-  // 1. Listen to Supabase Auth state changes (JWT state) to automatically configure currentRole and activeTenantId
+  // 1. Listen to Supabase Auth state changes (JWT state) to load profile & subscription
   useEffect(() => {
-    const handleAuthState = (session: any) => {
-      if (session?.user) {
-        setCurrentUser(session.user);
-        const userMetadata = session.user.user_metadata || {};
-        const appMetadata = session.user.app_metadata || {};
-        
-        const userRole = userMetadata.role || appMetadata.role;
-        const tenantId = userMetadata.tenant_id || appMetadata.tenant_id;
-        
-        if (userRole) {
-          setCurrentRole(userRole as Role);
-        }
-        if (tenantId) {
-          setActiveTenantIdState(tenantId);
-        }
-      } else {
-        setCurrentUser(null);
-      }
-    };
+    refreshUserSession();
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      handleAuthState(session);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      handleAuthState(session);
+    const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange((_event, session) => {
+      refreshUserSession();
     });
 
     return () => {
-      subscription.unsubscribe();
+      authSub.unsubscribe();
     };
-  }, []);
+  }, [refreshUserSession]);
 
   // 2. Fetch multi-tenant isolated fleet data from Supabase whenever activeTenantId or session state shifts
   const loadFleetData = async (active: boolean = true) => {
@@ -457,17 +484,39 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [goldenPathBStatus, setGoldenPathBStatus] = useState({ active: false, currentStep: 0 });
 
   const changeScreen = useCallback((screen: ScreenId, shouldNavigate: boolean = true) => {
-    setCurrentScreen(screen);
+    let targetScreen = screen;
+
+    // RBAC Middleware Check
+    if (targetScreen !== 'LANDING_PAGE' && targetScreen !== 'FORBIDDEN_403') {
+      const perm = RBAC_MATRIX[targetScreen]?.[currentRole];
+      if (!perm || perm === 'none') {
+        targetScreen = 'FORBIDDEN_403';
+      }
+    }
+
+    // Subscription Status Guard
+    if (subscription && (subscription.status === 'past_due' || subscription.status === 'cancelled')) {
+      if (currentRole !== 'SUPER_ADMIN' && targetScreen !== 'BILLING' && targetScreen !== 'LANDING_PAGE') {
+        targetScreen = 'BILLING';
+      }
+    }
+
+    setCurrentScreen(targetScreen);
     if (shouldNavigate) {
-      const targetRoute = screenToRouteMap[screen];
+      const targetRoute = screenToRouteMap[targetScreen];
       if (targetRoute && window.location.pathname !== targetRoute) {
         navigate(targetRoute);
       }
     }
-  }, [navigate]);
+  }, [currentRole, subscription, navigate]);
 
-  // When switching roles, ensure current screen is accessible by new role or navigate to role's workspace
+  // Role changes are strictly locked to database profile when authenticated
   const changeRole = (newRole: Role, preferredScreen?: ScreenId) => {
+    if (currentUser && userProfile) {
+      console.warn('[RBAC] Role is strictly bound to authenticated Supabase user profile. Client-side role override is disabled.');
+      return;
+    }
+
     setCurrentRole(newRole);
     setIsRoleSelectorOpen(false);
 
@@ -1068,8 +1117,8 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       changeScreen('CONFLICT_ALERTS');
       setSelectedVehicleId('V-024');
     } else if (step === 3) {
-      // Technical Controller creates Work Order #WO-4091
-      changeRole('TECHNICAL_CONTROLLER');
+      // Maintenance Manager creates Work Order #WO-4091
+      changeRole('MAINTENANCE_MANAGER');
       changeScreen('WORK_ORDER_QUEUE');
       createWorkOrder({
         vehicle_id: 'V-024',
@@ -1090,12 +1139,12 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         related_fault_code: 'P0299',
       });
     } else if (step === 4) {
-      // Logistics Controller sees stock consumed
-      changeRole('LOGISTICS_CONTROLLER');
+      // Operations Controller sees stock consumed
+      changeRole('OPERATIONS');
       changeScreen('INVENTORY_DASHBOARD');
     } else if (step === 5) {
-      // Management Controller sees it in variance
-      changeRole('MGMT_CONTROLLER');
+      // Finance Controller sees it in variance
+      changeRole('FINANCE');
       changeScreen('VARIANCE_DASHBOARD');
     } else if (step === 6) {
       // Director sees it in aggregate
@@ -1118,8 +1167,8 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         'Mohamed Farsi (Driver)'
       );
     } else if (step === 2) {
-      // Technical Controller & Fleet Manager notified
-      changeRole('TECHNICAL_CONTROLLER');
+      // Maintenance Manager & Fleet Manager notified
+      changeRole('MAINTENANCE_MANAGER');
       changeScreen('INCIDENT_REPORTS');
     } else if (step === 3) {
       // Mechanic performs on-site OBD check -> discovers fault -> continues into Golden Path A
@@ -1137,8 +1186,8 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         prev.map((i) => (i.vehicle_id === 'V-018' ? { ...i, matched_to_fault: true, related_fault_code: 'C0035' } : i))
       );
     } else if (step === 4) {
-      // Switch to Tech Controller to create work order
-      changeRole('TECHNICAL_CONTROLLER');
+      // Switch to Maintenance Manager to create work order
+      changeRole('MAINTENANCE_MANAGER');
       changeScreen('WORK_ORDER_QUEUE');
       createWorkOrder({
         vehicle_id: 'V-018',
@@ -1180,7 +1229,10 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         goldenPathAStatus,
         goldenPathBStatus,
         currentUser,
+        userProfile,
+        subscription,
         syncStatus,
+        refreshUserSession,
 
         tenantConfigs,
         activeTenantId,

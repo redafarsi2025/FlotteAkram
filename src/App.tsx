@@ -27,6 +27,9 @@ const SafetyPerformance = lazy(() => import('./components/screens/SafetyPerforma
 const FuelModule = lazy(() => import('./components/screens/FuelModule').then(m => ({ default: m.FuelModule })));
 const TelemetryStream = lazy(() => import('./components/screens/TelemetryStream').then(m => ({ default: m.TelemetryStream })));
 const AuditLog = lazy(() => import('./components/screens/AuditLog').then(m => ({ default: m.AuditLog })));
+const InvitationsScreen = lazy(() => import('./components/screens/InvitationsScreen').then(m => ({ default: m.InvitationsScreen })));
+const BillingScreen = lazy(() => import('./components/screens/BillingScreen').then(m => ({ default: m.BillingScreen })));
+const ForbiddenScreen = lazy(() => import('./components/screens/ForbiddenScreen').then(m => ({ default: m.ForbiddenScreen })));
 
 const RouteFallback: React.FC = () => (
   <div className="flex items-center justify-center h-full w-full py-24">
@@ -79,6 +82,9 @@ const AppLayout: React.FC = () => {
               <Route path="/fuel" element={<FuelModule />} />
               <Route path="/telemetry" element={<TelemetryStream />} />
               <Route path="/audit" element={<AuditLog />} />
+              <Route path="/invitations" element={<InvitationsScreen />} />
+              <Route path="/billing" element={<BillingScreen />} />
+              <Route path="/forbidden" element={<ForbiddenScreen />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>

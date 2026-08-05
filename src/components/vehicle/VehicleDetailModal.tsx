@@ -77,18 +77,22 @@ export const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({
   // RBAC conditional tab list
   const getAllowedTabs = (): TabType[] => {
     switch (currentRole) {
+      case 'SUPER_ADMIN':
+        return ['summary', 'diagnostics', 'history', 'cost', 'parts', 'work_orders', 'warranty'];
       case 'DIRECTOR':
-        return ['summary'];
-      case 'MGMT_CONTROLLER':
+        return ['summary', 'cost'];
+      case 'FINANCE':
         return ['cost'];
-      case 'LOGISTICS_CONTROLLER':
+      case 'OPERATIONS':
         return ['parts'];
+      case 'MAINTENANCE_MANAGER':
+        return ['summary', 'diagnostics', 'history', 'cost', 'parts', 'work_orders', 'warranty'];
       case 'MECHANIC':
         return ['summary', 'diagnostics', 'history', 'parts', 'work_orders', 'warranty'];
       case 'DRIVER':
         return ['summary'];
       default:
-        // TECHNICAL_CONTROLLER or FLEET_MANAGER -> full access
+        // FLEET_MANAGER -> full access
         return ['summary', 'diagnostics', 'history', 'cost', 'parts', 'work_orders', 'warranty'];
     }
   };
@@ -205,7 +209,8 @@ export const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              {(currentRole === 'TECHNICAL_CONTROLLER' ||
+              {(currentRole === 'MAINTENANCE_MANAGER' ||
+                currentRole === 'SUPER_ADMIN' ||
                 currentRole === 'FLEET_MANAGER' ||
                 currentRole === 'MECHANIC') && (
                 <button

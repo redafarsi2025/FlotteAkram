@@ -142,7 +142,10 @@ export const TenantConfig: React.FC = () => {
   const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'pending' | 'saving'>('saved');
   const [isSeedingDemo, setIsSeedingDemo] = useState<boolean>(false);
 
-  const isNonProduction = typeof process !== 'undefined' ? process.env.NODE_ENV !== 'production' : true;
+  const allowDemoSeed =
+    (typeof process !== 'undefined' &&
+      (process.env.ALLOW_DEMO_SEED === 'true' || process.env.VITE_ALLOW_DEMO_SEED === 'true')) ||
+    ((import.meta as any).env?.VITE_ALLOW_DEMO_SEED === 'true');
 
   const handleLoadDemoData = async () => {
     setIsSeedingDemo(true);
@@ -430,7 +433,7 @@ export const TenantConfig: React.FC = () => {
             New Society
           </button>
 
-          {isNonProduction && (
+          {allowDemoSeed && (
             <button
               onClick={handleLoadDemoData}
               disabled={isSeedingDemo}

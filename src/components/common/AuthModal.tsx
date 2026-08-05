@@ -1,51 +1,46 @@
 import React, { useState } from 'react';
-import { supabase } from '../../lib/supabase';
 import { useFleet } from '../../context/FleetContext';
 import { useLocalization } from '../../context/LocalizationContext';
-import { LogIn, LogOut, User, ShieldCheck, X, Building, CheckCircle2, AlertCircle } from 'lucide-react';
-import { Role } from '../../types';
+import { LogIn, UserPlus, KeyRound, ShieldCheck, X, Building, CheckCircle2, AlertCircle, Mail, Lock, User as UserIcon } from 'lucide-react';
+import { registerPublicCompany, loginUser, logoutUser, requestPasswordReset } from '../../services/authService';
+import { acceptInvitation } from '../../services/invitationService';
 
 interface AuthModalProps {
   onClose: () => void;
-  initialIsSignUp?: boolean;
+  initialTab?: 'login' | 'register' | 'invite' | 'forgot';
+  initialInviteToken?: string;
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ onClose, initialIsSignUp = false }) => {
-  const { changeRole, activeTenantId, setActiveTenantId, tenantConfigs } = useFleet();
+export const AuthModal: React.FC<AuthModalProps> = ({ onClose, initialTab = 'login', initialInviteToken = '' }) => {
+  const { userProfile, refreshUserSession } = useFleet();
   const { t } = useLocalization();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [selectedTenantId, setSelectedTenantId] = useState(activeTenantId || 'TNT-NEXTR-001');
+  const [tab, setTab] = useState<'login' | 'register' | 'invite' | 'forgot'>(initialTab);
   const [loading, setLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(initialIsSignUp);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [activeSessionUser, setActiveSessionUser] = useState<any>(null);
-  const [assignedRole, setAssignedRole] = useState<string>('UNASSIGNED');
 
-  React.useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        setActiveSessionUser(session.user);
-        // Query profile to see details
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
-        if (profile?.role) {
-          setAssignedRole(profile.role);
-        } else {
-          setAssignedRole('UNASSIGNED');
-        }
-      }
-    });
-  }, []);
+  // Login form state
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
 
-  const handleSignIn = async (e: React.FormEvent) => {
+  // Self-Registration form state (Company + Tenant + SUPER_ADMIN)
+  const [regFullName, setRegFullName] = useState('');
+  const [regCompanyName, setRegCompanyName] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+
+  // Invitation acceptance form state
+  const [inviteToken, setInviteToken] = useState(initialInviteToken);
+  const [inviteFullName, setInviteFullName] = useState('');
+  const [invitePassword, setInvitePassword] = useState('');
+
+  // Forgot password form state
+  const [forgotEmail, setForgotEmail] = useState('');
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    if (!loginEmail || !loginPassword) {
       setErrorMsg('Please enter both email and password.');
       return;
     }
@@ -54,43 +49,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, initialIsSignUp =
     setSuccessMsg(null);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        setErrorMsg(error.message);
-      } else if (data.session) {
-        // Query the profile row for role/tenant source of truth
-        const { data: profile, error: profileErr } = await supabase
-          .from('profiles')
-          .select('tenant_id, role')
-          .eq('id', data.session.user.id)
-          .single();
-
-        let finalRole: Role = 'UNASSIGNED';
-        let finalTenantId = activeTenantId || 'TNT-NEXTR-001';
-
-        if (profile && !profileErr && profile.role) {
-          finalRole = profile.role as Role;
-          if (profile.tenant_id) {
-            finalTenantId = profile.tenant_id;
-          }
-        }
-
-        setActiveSessionUser(data.session.user);
-        changeRole(finalRole);
-        setActiveTenantId(finalTenantId);
-        setAssignedRole(finalRole);
-
-        if (finalRole === 'UNASSIGNED') {
-          setSuccessMsg(`Connexion réussie (${data.session.user.email}). Aucun rôle attribué — En attente d'affectation par le gestionnaire superutilisateur SaaS.`);
-        } else {
-          setSuccessMsg(`Authenticated successfully as ${data.session.user.email} (Role: ${finalRole}, Tenant: ${finalTenantId})`);
-        }
-        setTimeout(() => onClose(), 1500);
-      }
+      const { profile } = await loginUser(loginEmail, loginPassword);
+      setSuccessMsg(`Authenticated successfully as ${profile.full_name} (${profile.role}).`);
+      await refreshUserSession();
+      setTimeout(() => onClose(), 1000);
     } catch (err: any) {
       setErrorMsg(err.message || 'Authentication error');
     } finally {
@@ -98,10 +60,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, initialIsSignUp =
     }
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
-      setErrorMsg('Please enter email and password to create an account.');
+    if (!regFullName || !regCompanyName || !regEmail || !regPassword) {
+      setErrorMsg('Please complete all fields to register your company workspace.');
       return;
     }
     setLoading(true);
@@ -109,26 +71,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, initialIsSignUp =
     setSuccessMsg(null);
 
     try {
-      // Create user with unassigned role metadata
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            tenant_id: selectedTenantId,
-            role: 'UNASSIGNED',
-          },
-        },
+      const { user, company } = await registerPublicCompany({
+        fullName: regFullName,
+        companyName: regCompanyName,
+        email: regEmail,
+        password: regPassword,
       });
 
-      if (error) {
-        setErrorMsg(error.message);
-      } else {
-        setSuccessMsg(`Compte créé avec succès. Aucun rôle n'est attribué par défaut. Le rôle et l'espace de travail doivent être affectés par le gestionnaire superutilisateur du SaaS.`);
-        setIsSignUp(false);
-        setEmail('');
-        setPassword('');
-      }
+      setSuccessMsg(`Company workspace "${company.name}" created successfully! Signed in as ${user.full_name} (SUPER_ADMIN).`);
+      await refreshUserSession();
+      setTimeout(() => onClose(), 1500);
     } catch (err: any) {
       setErrorMsg(err.message || 'Registration error');
     } finally {
@@ -136,156 +88,341 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, initialIsSignUp =
     }
   };
 
+  const handleAcceptInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inviteToken || !inviteFullName || !invitePassword) {
+      setErrorMsg('Please provide token, full name, and password to accept invitation.');
+      return;
+    }
+    setLoading(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    try {
+      const profile = await acceptInvitation({
+        token: inviteToken,
+        fullName: inviteFullName,
+        password: invitePassword,
+      });
+
+      setSuccessMsg(`Invitation accepted! Account activated as ${profile.full_name} (${profile.role}).`);
+      await refreshUserSession();
+      setTimeout(() => onClose(), 1500);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Invitation acceptance failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail) {
+      setErrorMsg('Please enter your email address.');
+      return;
+    }
+    setLoading(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    try {
+      await requestPasswordReset(forgotEmail);
+      setSuccessMsg(`Password reset instructions sent to ${forgotEmail}. Please check your inbox.`);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to process password reset.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSignOut = async () => {
     setLoading(true);
-    await supabase.auth.signOut();
-    setActiveSessionUser(null);
-    setSuccessMsg('Signed out of Supabase session.');
+    await logoutUser(userProfile);
+    await refreshUserSession();
+    setSuccessMsg('Successfully signed out.');
     setLoading(false);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
-        {/* Header */}
-        <div className="bg-slate-900 px-6 py-5 text-white flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-white font-bold">
-              <ShieldCheck className="h-6 w-6" />
-            </div>
+      <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
+        {/* Modal Header */}
+        <div className="bg-slate-900 px-6 py-4 flex items-center justify-between text-white border-b border-slate-800">
+          <div className="flex items-center gap-2.5">
+            <ShieldCheck className="w-6 h-6 text-indigo-400" />
             <div>
-              <h3 className="text-lg font-bold tracking-tight text-white">
-                {t('auth.title', {}, 'NextTransit Enterprise Auth & RLS')}
-              </h3>
-              <p className="text-xs text-slate-300">
-                {t('auth.subtitle', {}, 'Supabase JWT Session & Multi-Tenant Security Policy')}
-              </p>
+              <h3 className="font-bold text-base tracking-wide">NextTransit Supabase Auth</h3>
+              <p className="text-xs text-slate-400">Production Multi-Tenant Identity Provider</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition cursor-pointer"
+            className="rounded-lg p-1 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors cursor-pointer"
           >
-            <X className="h-5 w-5" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-5">
-          {activeSessionUser ? (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 space-y-3">
-              <div className="flex items-center gap-2 text-emerald-800 font-bold text-sm">
-                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                <span>Active Supabase Auth Session Verified</span>
-              </div>
-              <div className="text-xs text-slate-700 space-y-1 font-mono">
-                <div><strong className="font-sans text-slate-900">User ID:</strong> {activeSessionUser.id}</div>
-                <div><strong className="font-sans text-slate-900">Email:</strong> {activeSessionUser.email}</div>
-                <div><strong className="font-sans text-slate-900">Active Tenant ID:</strong> {activeTenantId}</div>
-                <div><strong className="font-sans text-slate-900">Assigned Role:</strong> {assignedRole}</div>
-              </div>
-              <button
-                onClick={handleSignOut}
-                disabled={loading}
-                className="w-full inline-flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-slate-900 text-white font-semibold text-xs hover:bg-slate-800 transition cursor-pointer"
-              >
-                <LogOut className="h-4 w-4" />
-                <span>Sign Out of Supabase Session</span>
-              </button>
+        {/* Tab Navigation */}
+        <div className="flex border-b border-slate-200 bg-slate-50 text-xs font-semibold">
+          <button
+            onClick={() => { setTab('login'); setErrorMsg(null); setSuccessMsg(null); }}
+            className={`flex-1 py-3 text-center border-b-2 transition-colors cursor-pointer ${
+              tab === 'login' ? 'border-indigo-600 text-indigo-700 bg-white font-bold' : 'border-transparent text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            Log In
+          </button>
+          <button
+            onClick={() => { setTab('register'); setErrorMsg(null); setSuccessMsg(null); }}
+            className={`flex-1 py-3 text-center border-b-2 transition-colors cursor-pointer ${
+              tab === 'register' ? 'border-indigo-600 text-indigo-700 bg-white font-bold' : 'border-transparent text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            New Company
+          </button>
+          <button
+            onClick={() => { setTab('invite'); setErrorMsg(null); setSuccessMsg(null); }}
+            className={`flex-1 py-3 text-center border-b-2 transition-colors cursor-pointer ${
+              tab === 'invite' ? 'border-indigo-600 text-indigo-700 bg-white font-bold' : 'border-transparent text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            Accept Invite
+          </button>
+        </div>
+
+        {/* Modal Body */}
+        <div className="p-6 space-y-4">
+          {errorMsg && (
+            <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-medium flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+              <span>{errorMsg}</span>
             </div>
-          ) : (
-            <form onSubmit={isSignUp ? handleSignUp : handleSignIn} className="space-y-4">
-              {/* Tab Selector */}
-              <div className="flex border-b border-slate-200">
+          )}
+
+          {successMsg && (
+            <div className="p-3.5 rounded-xl bg-green-50 border border-green-200 text-green-800 text-xs font-medium flex items-start gap-2">
+              <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
+              <span>{successMsg}</span>
+            </div>
+          )}
+
+          {/* User Logged In Card */}
+          {userProfile && (
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="font-semibold text-slate-800">{userProfile.full_name}</span>
+                <span className="px-2 py-0.5 rounded bg-indigo-100 text-indigo-700 font-bold">{userProfile.role}</span>
+              </div>
+              <p className="text-slate-500">{userProfile.email}</p>
+              <div className="pt-2 border-t border-slate-200 flex justify-end">
                 <button
-                  type="button"
-                  onClick={() => { setIsSignUp(false); setErrorMsg(null); setSuccessMsg(null); }}
-                  className={`flex-1 pb-2.5 text-xs font-semibold text-center border-b-2 transition ${!isSignUp ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+                  onClick={handleSignOut}
+                  className="px-3 py-1.5 rounded-lg bg-red-600 text-white font-medium text-xs hover:bg-red-700 transition-colors cursor-pointer"
                 >
-                  Sign In
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setIsSignUp(true); setErrorMsg(null); setSuccessMsg(null); }}
-                  className={`flex-1 pb-2.5 text-xs font-semibold text-center border-b-2 transition ${isSignUp ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
-                >
-                  Create Account
+                  Sign Out
                 </button>
               </div>
+            </div>
+          )}
 
-              {errorMsg && (
-                <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700 flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4 text-red-500 shrink-0" />
-                  <span>{errorMsg}</span>
-                </div>
-              )}
-              {successMsg && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-700 flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                  <span>{successMsg}</span>
-                </div>
-              )}
-
+          {/* TAB 1: LOGIN */}
+          {tab === 'login' && !userProfile && (
+            <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  User Email (Supabase Auth)
-                </label>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Email Address</label>
                 <div className="relative">
-                  <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                   <input
                     type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="director@nexttransit.com"
-                    className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                     required
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    placeholder="user@company.com"
+                    className="w-full pl-9 pr-3.5 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
+                  <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••••"
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  required
-                />
-              </div>
-
-              {isSignUp && (
-                <div className="bg-slate-50 border border-slate-150 rounded-xl p-3 text-[11px] text-slate-600">
-                  <span className="font-semibold text-slate-800">Note de Sécurité & Rôles :</span> Aucun rôle n'est attribué par défaut lors de l'inscription (Statut : <strong className="font-sans text-slate-800">NON ASSIGNÉ</strong>). Le rôle et les autorisations de l'espace de travail doivent être explicitement configurés par le gestionnaire superutilisateur du SaaS.
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-xs font-medium text-slate-700">Password</label>
+                  <button
+                    type="button"
+                    onClick={() => setTab('forgot')}
+                    className="text-xs text-indigo-600 hover:text-indigo-800 cursor-pointer"
+                  >
+                    Forgot password?
+                  </button>
                 </div>
-              )}
-
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 text-white font-semibold text-xs hover:bg-indigo-500 transition cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  <LogIn className="h-4 w-4" />
-                  <span>{loading ? 'Processing...' : isSignUp ? 'Register Account' : 'Sign In with Supabase'}</span>
-                </button>
+                <div className="relative">
+                  <input
+                    type="password"
+                    required
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    placeholder="••••••••••••"
+                    className="w-full pl-9 pr-3.5 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
+                </div>
               </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 text-white font-medium text-sm hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
+              >
+                {loading ? 'Authenticating...' : 'Sign In'}
+              </button>
             </form>
           )}
 
-          {/* Technical Info */}
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-600 space-y-1">
-            <div className="font-semibold text-slate-900 flex items-center gap-1">
-              <ShieldCheck className="h-3.5 w-3.5 text-indigo-600" />
-              <span>Multi-Tenant Row Level Security (RLS) Active</span>
-            </div>
-            <p className="text-[11px] text-slate-500 leading-relaxed">
-              Every request is scoped by <code className="bg-slate-200 px-1 rounded text-slate-800">tenant_id</code> and user profile rows in PostgreSQL, preventing cross-tenant leakage.
-            </p>
-          </div>
+          {/* TAB 2: PUBLIC SELF-REGISTRATION (COMPANY + SUPER_ADMIN) */}
+          {tab === 'register' && !userProfile && (
+            <form onSubmit={handleRegister} className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={regFullName}
+                  onChange={(e) => setRegFullName(e.target.value)}
+                  placeholder="Director Akram Farsi"
+                  className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Company / Organization Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={regCompanyName}
+                  onChange={(e) => setRegCompanyName(e.target.value)}
+                  placeholder="Numilog Logistics Enterprise"
+                  className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Work Email *</label>
+                <input
+                  type="email"
+                  required
+                  value={regEmail}
+                  onChange={(e) => setRegEmail(e.target.value)}
+                  placeholder="akram@numilog.dz"
+                  className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Password *</label>
+                <input
+                  type="password"
+                  required
+                  value={regPassword}
+                  onChange={(e) => setRegPassword(e.target.value)}
+                  placeholder="Min 10 chars, 1 number, 1 symbol"
+                  className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <p className="text-[10px] text-slate-500 mt-1">
+                  Policy: minimum 10 characters, at least 1 digit, 1 special symbol (!@#$).
+                </p>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-[11px] text-amber-900">
+                Self-registration creates a new Company & Tenant workspace with role <strong>SUPER_ADMIN</strong>. All other operational roles require an invitation token.
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 text-white font-medium text-sm hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
+              >
+                {loading ? 'Registering Workspace...' : 'Register Company Workspace'}
+              </button>
+            </form>
+          )}
+
+          {/* TAB 3: ACCEPT INVITATION */}
+          {tab === 'invite' && !userProfile && (
+            <form onSubmit={handleAcceptInvite} className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Invitation Token *</label>
+                <input
+                  type="text"
+                  required
+                  value={inviteToken}
+                  onChange={(e) => setInviteToken(e.target.value)}
+                  placeholder="inv_tok_..."
+                  className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Your Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={inviteFullName}
+                  onChange={(e) => setInviteFullName(e.target.value)}
+                  placeholder="Jane Doe"
+                  className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Create Password *</label>
+                <input
+                  type="password"
+                  required
+                  value={invitePassword}
+                  onChange={(e) => setInvitePassword(e.target.value)}
+                  placeholder="Min 10 chars, 1 number, 1 symbol"
+                  className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 text-white font-medium text-sm hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
+              >
+                {loading ? 'Validating Token...' : 'Accept Invitation & Activate'}
+              </button>
+            </form>
+          )}
+
+          {/* TAB 4: FORGOT PASSWORD */}
+          {tab === 'forgot' && !userProfile && (
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <p className="text-xs text-slate-600">
+                Enter your registered work email address. We will issue a secure password reset link to verify your identity.
+              </p>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Email Address</label>
+                <input
+                  type="email"
+                  required
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  placeholder="user@company.com"
+                  className="w-full px-3.5 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 text-white font-medium text-sm hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
+              >
+                {loading ? 'Sending Request...' : 'Send Password Reset Request'}
+              </button>
+            </form>
+          )}
         </div>
       </div>
     </div>

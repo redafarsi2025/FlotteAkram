@@ -998,6 +998,18 @@ export async function seedDemoTenant(tenantId: string = DEMO_TENANT_UUID): Promi
   tenantId: string;
   data: DemoDataset;
 }> {
+  const isAllowed =
+    (typeof process !== 'undefined' &&
+      (process.env.ALLOW_DEMO_SEED === 'true' ||
+        process.env.VITE_ALLOW_DEMO_SEED === 'true' ||
+        process.env.NODE_ENV === 'test')) ||
+    ((import.meta as any).env?.VITE_ALLOW_DEMO_SEED === 'true') ||
+    ((import.meta as any).env?.MODE === 'test');
+
+  if (!isAllowed) {
+    throw new Error('Demo seed is disabled. Set ALLOW_DEMO_SEED=true environment variable to enable demo seeding.');
+  }
+
   console.log(`[seedDemoTenant] Starting idempotent demo seeding for tenant: ${tenantId}...`);
 
   // 1. Generate full enterprise dataset
