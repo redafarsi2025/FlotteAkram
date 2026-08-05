@@ -20,6 +20,10 @@ import {
   KeyRound,
   LogIn,
   LogOut,
+  Wifi,
+  WifiOff,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 import { AlertFeedModal } from './AlertFeedModal';
 import { GoldenPathModal } from './GoldenPathModal';
@@ -28,7 +32,7 @@ import { AuthModal } from './AuthModal';
 import { LanguageSelector } from '../localization/LanguageSelector';
 
 export const TopBar: React.FC = () => {
-  const { currentRole, changeRole, alerts, resetSeedData, isRoleSelectorOpen, setIsRoleSelectorOpen, currentUser } = useFleet();
+  const { currentRole, changeRole, alerts, resetSeedData, isRoleSelectorOpen, setIsRoleSelectorOpen, currentUser, syncStatus } = useFleet();
   const { t } = useLocalization();
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [showGoldenPathModal, setShowGoldenPathModal] = useState(false);
@@ -93,6 +97,26 @@ export const TopBar: React.FC = () => {
 
         {/* Right: Role Switcher, Language Selector, Reset Data, and Open Alerts */}
         <div className="flex items-center gap-3">
+          {/* Sync Status */}
+          <div
+            className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium ${
+              syncStatus === 'online'
+                ? 'bg-green-50 border-green-200 text-green-700'
+                : syncStatus === 'error'
+                ? 'bg-red-50 border-red-200 text-red-700'
+                : syncStatus === 'syncing'
+                ? 'bg-blue-50 border-blue-200 text-blue-700'
+                : 'bg-slate-50 border-slate-200 text-slate-700'
+            }`}
+            title={`Sync Status: ${syncStatus.toUpperCase()}`}
+          >
+            {syncStatus === 'online' && <Wifi className="w-3.5 h-3.5" />}
+            {syncStatus === 'error' && <AlertCircle className="w-3.5 h-3.5" />}
+            {syncStatus === 'offline' && <WifiOff className="w-3.5 h-3.5" />}
+            {syncStatus === 'syncing' && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+            <span className="capitalize">{syncStatus}</span>
+          </div>
+
           {/* Language Selector */}
           <LanguageSelector />
 

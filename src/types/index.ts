@@ -31,7 +31,10 @@ export type ScreenId =
   | 'DRIVER_MOBILE_VIEW'
   | 'TENANT_CONFIG'
   | 'TRANSLATION_CENTER'
-  | 'SAFETY_PERFORMANCE';
+  | 'SAFETY_PERFORMANCE'
+  | 'FUEL_LOGS'
+  | 'TELEMETRY_STREAM'
+  | 'AUDIT_LOG';
 
 export type PermissionLevel = 'full' | 'view' | 'none' | 'resolve' | 'parts_status' | 'assigned_only' | 'own_only' | 'submit';
 
@@ -166,7 +169,7 @@ export interface CostRecord {
   id: string;
   vehicle_id: string;
   vehicle_plate: string;
-  category: 'Preventive Maintenance' | 'Corrective Repair' | 'Parts & Consumables' | 'Emergency Diagnostics';
+  category: 'Preventive Maintenance' | 'Corrective Repair' | 'Parts & Consumables' | 'Emergency Diagnostics' | 'Fuel' | 'Engine' | 'Electrical' | 'Brakes' | 'Chassis';
   amount: number;
   budget_for_category: number;
   period: string; // e.g. "Q3 2026"
@@ -237,16 +240,19 @@ export interface TenantConfig {
 
 export interface FuelLog {
   id: string;
-  vehicle_id: string;
   tenant_id: string;
+  vehicle_id: string;
   liters: number;
   cost: number;
-  odometer: number;
-  date: string;
-  route_id?: string;
+  odometer_km: number;
+  logged_at: string;
   anomaly_flag: boolean;
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?: string;
+  // Compatibility aliases
+  odometer?: number;
+  date?: string;
+  route_id?: string;
 }
 
 export interface AuditLog {
@@ -262,3 +268,59 @@ export interface AuditLog {
   user_email: string;
   user_role: string;
 }
+
+// ==========================================
+// VENDOR-AGNOSTIC TELEMATICS INGESTION LAYER
+// ==========================================
+
+export type TelematicsProviderType = 'teltonika' | 'flespi_wialon' | 'manual';
+
+export interface DeviceMapping {
+  id: string;
+  tenant_id: string;
+  vehicle_id: string;
+  provider: TelematicsProviderType;
+  external_device_id: string;
+  created_at?: string;
+}
+
+export interface Position {
+  latitude: number;
+  longitude: number;
+  altitude_m?: number;
+  speed_kmh?: number;
+  heading_deg?: number;
+  timestamp: string;
+}
+
+export type Unsubscribe = () => void;
+
+/**
+ * Stable internal contract for vendor-agnostic telematics ingestion.
+ * Decouples R1-R7 Decision Engine rules from hardware/vendor-specific payload formats.
+ */
+export interface TelematicsProvider {
+  providerName: TelematicsProviderType;
+  isConnected: boolean;
+  getFaultCodes(vehicleId: string): Promise<ActiveFaultCode[]>;
+  getPosition(vehicleId: string): Promise<Position | null>;
+  subscribe(
+    vehicleId: string,
+    onUpdate: (data: { faultCodes?: ActiveFaultCode[]; position?: Position | null }) => void
+  ): Unsubscribe;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  tenant_id: string;
+  actor_id: string;
+  actor_role?: string;
+  entity_type: 'vehicle' | 'work_order' | 'alert' | 'cae_budget' | string;
+  entity_id: string;
+  action: 'CREATE' | 'UPDATE' | 'STATUS_CHANGE' | 'OVERRIDE' | 'APPROVAL' | string;
+  before: Record<string, any>;
+  after: Record<string, any>;
+  created_at: string;
+}
+
+

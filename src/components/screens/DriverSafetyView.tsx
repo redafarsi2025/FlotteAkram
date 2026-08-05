@@ -9,7 +9,9 @@ import {
   ShieldCheck,
   Info,
   Sparkles,
-  MapPin
+  MapPin,
+  Trophy,
+  Award
 } from 'lucide-react';
 
 export interface DriverTelemetry {
@@ -45,6 +47,7 @@ export const DriverSafetyView: React.FC<DriverSafetyViewProps> = ({
 }) => {
   const { currentLanguage, dir } = useLocalization();
   const currentDriver = drivers.find((d) => d.id === simulatedDriverId) || drivers[0];
+  const driverRank = [...drivers].sort((a, b) => b.safetyScore - a.safetyScore).findIndex((d) => d.id === currentDriver.id) + 1;
 
   return (
     <div className="space-y-6" dir={dir}>
@@ -121,7 +124,7 @@ export const DriverSafetyView: React.FC<DriverSafetyViewProps> = ({
                 <span className="text-xs text-slate-400">/ 100</span>
               </div>
             </div>
-            <div className="mt-4 text-center">
+            <div className="mt-4 text-center space-y-2">
               <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
                 currentDriver.status === 'Exemplary' ? 'bg-emerald-100 text-emerald-800' :
                 currentDriver.status === 'Moderate Risk' ? 'bg-amber-100 text-amber-800' :
@@ -131,6 +134,17 @@ export const DriverSafetyView: React.FC<DriverSafetyViewProps> = ({
                  currentDriver.status === 'Moderate Risk' ? (currentLanguage === 'ar' ? 'خطر متوسط' : 'Risque Modéré') :
                  (currentLanguage === 'ar' ? 'خطر مرتفع' : 'Risque Élevé')}
               </span>
+
+              <div className="flex items-center justify-center gap-1.5 px-3 py-1 bg-amber-50 border border-amber-200 text-amber-900 rounded-full text-xs font-extrabold shadow-2xs">
+                <Trophy className="w-3.5 h-3.5 text-amber-600" />
+                <span>
+                  {currentLanguage === 'ar'
+                    ? `الترتيب في لوحة الصدارة: #${driverRank} من ${drivers.length}`
+                    : currentLanguage === 'en'
+                    ? `Leaderboard Rank: #${driverRank} of ${drivers.length}`
+                    : `Rang au classement : #${driverRank} sur ${drivers.length}`}
+                </span>
+              </div>
             </div>
           </div>
 

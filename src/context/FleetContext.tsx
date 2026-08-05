@@ -27,8 +27,11 @@ import {
   CAEItem,
   VehicleClassification,
   TenantConfig,
+  FuelLog,
   DEFAULT_ROLE_SCREENS,
 } from '../types';
+import { fuelService, INITIAL_SEED_FUEL_LOGS } from '../services/fuelService';
+import { recordAudit } from '../services/auditService';
 import {
   INITIAL_VEHICLES,
   INITIAL_INVENTORY,
@@ -50,6 +53,7 @@ interface FleetContextType {
   incidents: Incident[];
   costRecords: CostRecord[];
   alerts: FleetAlert[];
+  fuelLogs: FuelLog[];
   caeAvailableBudget: number;
   caeDelayMultipliers: Record<VehicleClassification, number>;
   selectedVehicleId: string | null;
@@ -57,6 +61,7 @@ interface FleetContextType {
   goldenPathAStatus: { active: boolean; currentStep: number };
   goldenPathBStatus: { active: boolean; currentStep: number };
   currentUser: User | null;
+  syncStatus: 'online' | 'offline' | 'syncing' | 'error';
 
   // Tenant Configuration State & Actions
   tenantConfigs: TenantConfig[];
@@ -105,6 +110,13 @@ interface FleetContextType {
   ) => void;
   resolveConflict: (vehicleId: string, action: 'assign_alternate' | 'expedite' | 'defer', notes: string) => void;
   markAlertRead: (alertId: string) => void;
+  addFuelLog: (logInput: {
+    vehicle_id: string;
+    liters: number;
+    cost: number;
+    odometer_km: number;
+    logged_at?: string;
+  }) => Promise<FuelLog>;
   resetSeedData: () => void;
   
   // Golden path demo handlers
@@ -131,13 +143,67 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [isRoleSelectorOpen, setIsRoleSelectorOpen] = useState<boolean>(false); // Start false so Landing Page shows clean first
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [syncStatus, setSyncStatus] = useState<'online' | 'offline' | 'syncing' | 'error'>('online');
 
-  const [vehicles, setVehicles] = useState<Vehicle[]>(() => INITIAL_VEHICLES);
-  const [inventory, setInventory] = useState<InventoryItem[]>(() => INITIAL_INVENTORY);
-  const [workOrders, setWorkOrders] = useState<WorkOrder[]>(() => INITIAL_WORK_ORDERS);
-  const [incidents, setIncidents] = useState<Incident[]>(() => INITIAL_INCIDENTS);
-  const [costRecords, setCostRecords] = useState<CostRecord[]>(() => INITIAL_COST_RECORDS);
-  const [alerts, setAlerts] = useState<FleetAlert[]>(() => INITIAL_ALERTS);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
+  const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [costRecords, setCostRecords] = useState<CostRecord[]>([]);
+  const [alerts, setAlerts] = useState<FleetAlert[]>([]);
+  const [fuelLogs, setFuelLogs] = useState<FuelLog[]>([]);
+
+  // Load initial fuel logs from service on mount
+  useEffect(() => {
+    fuelService.getFuelLogs().then((logs) => {
+      if (logs && logs.length > 0) {
+        setFuelLogs(logs);
+      }
+    }).catch(() => {
+      setSyncStatus('error');
+    });
+  }, []);
+
+  const addFuelLog = async (logInput: {
+    vehicle_id: string;
+    liters: number;
+    cost: number;
+    odometer_km: number;
+    logged_at?: string;
+  }) => {
+    const newLog = await fuelService.addFuelLog({
+      ...logInput,
+      tenant_id: activeTenantId,
+    });
+    setFuelLogs((prev) => [...prev, newLog]);
+
+    // Check if anomalous and add R7 / Fuel alert if true
+    if (newLog.anomaly_flag) {
+      const vehicle = vehicles.find((v) => v.id === newLog.vehicle_id);
+      addAlert({
+        rule_id: 'R7',
+        title: `Fuel Anomaly Detected: ${vehicle?.plate || newLog.vehicle_id}`,
+        description: `High fuel consumption spike logged (${newLog.liters}L, ${newLog.cost} DA / $). Exceeds 90-day trailing baseline by >20%.`,
+        severity: 'warning',
+        vehicle_id: newLog.vehicle_id,
+      });
+    }
+
+    // Also append to cost records for R7 financial auditing
+    const vehicle = vehicles.find((v) => v.id === newLog.vehicle_id);
+    const costRecord: CostRecord = {
+      id: `CR-FUEL-${Date.now()}`,
+      vehicle_id: newLog.vehicle_id,
+      vehicle_plate: vehicle?.plate || 'UNKNOWN',
+      category: 'Fuel',
+      amount: newLog.cost,
+      budget_for_category: Math.round(newLog.cost * 0.9), // baseline estimate
+      period: 'Q3 2026',
+    };
+    setCostRecords((prev) => [costRecord, ...prev]);
+
+    return newLog;
+  };
 
   const [caeAvailableBudget, setCaeAvailableBudget] = useState<number>(5500);
   const [caeDelayMultipliers, setCaeDelayMultipliers] = useState<Record<VehicleClassification, number>>({
@@ -206,6 +272,7 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   // 2. Fetch multi-tenant isolated fleet data from Supabase whenever activeTenantId or session state shifts
   const loadFleetData = async (active: boolean = true) => {
+    if (active) setSyncStatus('syncing');
     try {
       const [vList, iList, woList, incList, cList, aList] = await Promise.all([
         fetchVehicles(true),
@@ -222,9 +289,11 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         setIncidents(incList);
         setCostRecords(cList);
         setAlerts(aList);
+        setSyncStatus('online');
       }
     } catch (err) {
       console.warn('Failed to load isolated fleet data from Supabase:', err);
+      if (active) setSyncStatus('error');
     }
   };
 
@@ -544,6 +613,20 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       })
     );
 
+    // Record audit log entry for vehicle status change / fault logging
+    const targetVehicle = vehicles.find((v) => v.id === vehicleId);
+    if (targetVehicle) {
+      recordAudit(
+        'vehicle',
+        vehicleId,
+        'STATUS_CHANGE',
+        { status: targetVehicle.status, active_faults_count: targetVehicle.active_fault_codes.length },
+        { status: fault.severity === 'Critical' ? 'Critical' : fault.severity === 'Warning' ? 'Attention' : targetVehicle.status, fault_code: fault.code, severity: fault.severity },
+        currentUser?.id || 'usr-fm-01',
+        currentRole
+      );
+    }
+
     // Backend sync
     syncLogOBDFaultToSupabase(vehicleId, fault);
   };
@@ -651,6 +734,23 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       severity: 'info',
       vehicle_id: vehicle.id,
     });
+
+    // Record audit log entry for work order creation
+    recordAudit(
+      'work_order',
+      newWorkOrder.id,
+      'CREATE',
+      {},
+      {
+        vehicle_id: newWorkOrder.vehicle_id,
+        type: newWorkOrder.type,
+        status: newWorkOrder.status,
+        assigned_mechanic: newWorkOrder.assigned_mechanic_name,
+        related_fault: newWorkOrder.related_fault_code,
+      },
+      currentUser?.id || 'usr-tc-01',
+      currentRole
+    );
 
     // Backend sync
     syncCreateWorkOrderToSupabase(newWorkOrder);
@@ -761,6 +861,17 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       vehicle_id: targetOrder.vehicle_id,
     });
 
+    // Record audit log entry for work order status change (Close)
+    recordAudit(
+      'work_order',
+      orderId,
+      'STATUS_CHANGE',
+      { status: targetOrder.status, before_notes: targetOrder.before_after_notes?.before },
+      { status: 'Closed', closed_date: new Date().toISOString().split('T')[0], after_notes: afterNotes },
+      currentUser?.id || 'usr-mech-01',
+      currentRole
+    );
+
     // 5. Invoke Supabase atomic RPC to perform full safe state transition on Postgres
     const ok = await syncCloseWorkOrderAtomic(orderId, afterNotes);
     if (ok) {
@@ -778,6 +889,16 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const vehicle = vehicles.find((v) => v.id === vehicleId);
     if (!vehicle) return;
 
+    // Record audit log for alert / rule override decision
+    recordAudit(
+      'alert',
+      `R4-ALT-${vehicleId}`,
+      'OVERRIDE',
+      { vehicle_id: vehicleId, scheduled_use_days: vehicle.scheduled_use_days, status_reason: vehicle.status_reason },
+      { action, notes, resolved_by: currentUser?.id || 'usr-fm-01' },
+      currentUser?.id || 'usr-fm-01',
+      currentRole
+    );
     if (action === 'assign_alternate') {
       // Reassign route to a healthy vehicle
       setVehicles((prev) =>
@@ -1051,6 +1172,7 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         incidents,
         costRecords,
         alerts,
+        fuelLogs,
         caeAvailableBudget,
         caeDelayMultipliers,
         selectedVehicleId,
@@ -1058,6 +1180,7 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         goldenPathAStatus,
         goldenPathBStatus,
         currentUser,
+        syncStatus,
 
         tenantConfigs,
         activeTenantId,
@@ -1078,6 +1201,7 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         submitDriverIncident,
         resolveConflict,
         markAlertRead,
+        addFuelLog,
         resetSeedData,
         triggerGoldenPathAStep,
         triggerGoldenPathBStep,

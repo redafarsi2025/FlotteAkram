@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useFleet } from '../../context/FleetContext';
 import { useLocalization } from '../../context/LocalizationContext';
 import { DriverSafetyView } from './DriverSafetyView';
+import { recordAudit } from '../../services/auditService';
 import {
   ShieldAlert,
   AlertTriangle,
@@ -24,7 +25,14 @@ import {
   Sparkles,
   Info,
   RotateCcw,
-  ShieldCheck
+  ShieldCheck,
+  Trophy,
+  Award,
+  Medal,
+  Crown,
+  Star,
+  Gift,
+  ThumbsUp
 } from 'lucide-react';
 
 interface DriverTelemetry {
@@ -146,7 +154,7 @@ const INITIAL_DRIVERS_TELEMETRY: DriverTelemetry[] = [
 ];
 
 export const SafetyPerformance: React.FC = () => {
-  const { currentLanguage, dir } = useLocalization();
+  const { currentLanguage, dir, t } = useLocalization();
   const { currentRole, setSelectedVehicleId, createWorkOrder } = useFleet();
 
   const [drivers, setDrivers] = useState<DriverTelemetry[]>(INITIAL_DRIVERS_TELEMETRY);
@@ -178,9 +186,33 @@ export const SafetyPerformance: React.FC = () => {
   );
   const highRiskCount = drivers.filter((d) => d.status === 'High Risk').length;
 
+  // Calculate ranked drivers for Leaderboard
+  const rankedDrivers = [...drivers].sort((a, b) => b.safetyScore - a.safetyScore);
+  const topThree = rankedDrivers.slice(0, 3);
+
   const showToast = (msg: string) => {
     setActionNotification(msg);
     setTimeout(() => setActionNotification(null), 4000);
+  };
+
+  const handleAwardBonus = (driver: DriverTelemetry, bonusAmount: string = '15 000 DZD') => {
+    recordAudit(
+      'driver_bonus',
+      driver.id,
+      'APPROVAL',
+      { previous_bonus_status: 'None', safety_score: driver.safetyScore },
+      { bonus_awarded: bonusAmount, driver_name: driver.name, awarded_by: currentRole },
+      'usr-dir-01',
+      currentRole
+    );
+
+    showToast(
+      currentLanguage === 'ar'
+        ? `تم منح مكافأة السلامة CNPSR (${bonusAmount}) للسائق المتميز ${driver.name} (النقاط: ${driver.safetyScore}/100)`
+        : currentLanguage === 'en'
+        ? `CNPSR Safety Bonus (${bonusAmount}) awarded to top driver ${driver.name} (Score: ${driver.safetyScore}/100)`
+        : `Prime de sécurité CNPSR (${bonusAmount}) attribuée au conducteur d'élite ${driver.name} (Score: ${driver.safetyScore}/100)`
+    );
   };
 
   const handleIssueCoachingAlert = (driverName: string) => {
@@ -402,6 +434,203 @@ export const SafetyPerformance: React.FC = () => {
             </div>
           </div>
 
+          {/* DRIVER SAFETY LEADERBOARD & TOP PERFORMERS PODIUM */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-amber-100 text-amber-800 rounded-2xl border border-amber-200 shadow-2xs">
+                  <Trophy className="w-6 h-6 text-amber-600" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-bold font-display text-slate-900">
+                      {t('safety.leaderboard_title', {}, 'Driver Safety Leaderboard & Champions')}
+                    </h2>
+                    <span className="px-2.5 py-0.5 bg-amber-50 border border-amber-200 text-amber-800 text-[10px] font-black uppercase rounded-full tracking-wider">
+                      August 2026 Monthly Ranking
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {t('safety.leaderboard_desc', {}, 'Dynamic driver ranking derived from aggregate telemetry safety scores (G-force, braking, zero OBD faults)')}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 self-start md:self-auto">
+                <span className="text-xs font-semibold text-slate-500">
+                  {currentLanguage === 'ar' ? 'معيار التقييم:' : 'Scoring Model:'}
+                </span>
+                <span className="text-xs font-mono font-bold bg-slate-100 text-slate-800 px-2.5 py-1 rounded-lg">
+                  CNPSR 100-Point Index
+                </span>
+              </div>
+            </div>
+
+            {/* Top 3 Champions Podium Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-2">
+              {/* 1st Place - Gold Champion */}
+              {topThree[0] && (
+                <div className="relative bg-gradient-to-b from-amber-500/10 via-amber-50/40 to-white border-2 border-amber-400 rounded-2xl p-5 shadow-sm space-y-4 flex flex-col justify-between">
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-amber-500 text-slate-950 font-black text-[10px] uppercase tracking-wider px-3 py-1 rounded-full border border-amber-300 shadow-md flex items-center gap-1 whitespace-nowrap">
+                    <Crown className="w-3.5 h-3.5 fill-slate-950 text-slate-950" />
+                    <span>{t('safety.podium_1st', {}, '1st Place - Gold Champion')}</span>
+                  </div>
+
+                  <div className="pt-2 flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 font-black font-data flex items-center justify-center text-base shadow-md">
+                          {topThree[0].name.split(' ').map((n) => n[0]).join('')}
+                        </div>
+                        <div className="absolute -bottom-1 -right-1 bg-amber-500 text-slate-950 p-1 rounded-full shadow-2xs">
+                          <Trophy className="w-3 h-3" />
+                        </div>
+                      </div>
+                      <div>
+                        <h3 className="font-extrabold text-sm text-slate-900 font-display flex items-center gap-1.5">
+                          <span>{topThree[0].name}</span>
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        </h3>
+                        <p className="text-[11px] text-slate-500 font-data">{topThree[0].vehicleName} ({topThree[0].vehiclePlate})</p>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <div className="text-2xl font-black font-data text-amber-700">
+                        {topThree[0].safetyScore}
+                        <span className="text-xs text-slate-400 font-normal">/100</span>
+                      </div>
+                      <span className="text-[9px] font-extrabold uppercase bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                        {topThree[0].status}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 text-xs text-slate-600 bg-white/80 p-3 rounded-xl border border-amber-200/60">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-500">{currentLanguage === 'ar' ? 'المسافة المقطوعة:' : 'Distance:'}</span>
+                      <span className="font-bold font-data text-slate-800">{topThree[0].distanceKm.toLocaleString()} km</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-500">{currentLanguage === 'ar' ? 'السرعة والفرامل:' : 'Driving Events:'}</span>
+                      <span className="font-bold text-emerald-700">{topThree[0].harshBrakingCount} brakes / 0 speeding</span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => handleAwardBonus(topThree[0], '15 000 DZD')}
+                    className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
+                  >
+                    <Gift className="w-4 h-4" />
+                    <span>{t('safety.award_bonus', {}, 'Award Safety Bonus')} (15 000 DZD)</span>
+                  </button>
+                </div>
+              )}
+
+              {/* 2nd Place - Silver Leader */}
+              {topThree[1] && (
+                <div className="relative bg-gradient-to-b from-slate-200/20 via-slate-50 to-white border border-slate-300 rounded-2xl p-5 shadow-xs space-y-4 flex flex-col justify-between">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-700 text-white font-black text-[10px] uppercase tracking-wider px-3 py-0.5 rounded-full shadow-xs flex items-center gap-1 whitespace-nowrap">
+                    <Award className="w-3.5 h-3.5 text-slate-200" />
+                    <span>{t('safety.podium_2nd', {}, '2nd Place - Silver Leader')}</span>
+                  </div>
+
+                  <div className="pt-2 flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-full bg-slate-300 text-slate-900 font-extrabold font-data flex items-center justify-center text-sm shadow-xs">
+                        {topThree[1].name.split(' ').map((n) => n[0]).join('')}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-sm text-slate-900 font-display">{topThree[1].name}</h3>
+                        <p className="text-[11px] text-slate-500 font-data">{topThree[1].vehicleName}</p>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <div className="text-2xl font-black font-data text-slate-800">
+                        {topThree[1].safetyScore}
+                        <span className="text-xs text-slate-400 font-normal">/100</span>
+                      </div>
+                      <span className="text-[9px] font-extrabold uppercase bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                        {topThree[1].status}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 text-xs text-slate-600 bg-slate-100/70 p-3 rounded-xl border border-slate-200">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-500">{currentLanguage === 'ar' ? 'المسافة:' : 'Distance:'}</span>
+                      <span className="font-bold font-data text-slate-800">{topThree[1].distanceKm.toLocaleString()} km</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-500">{currentLanguage === 'ar' ? 'الأداء:' : 'Performance:'}</span>
+                      <span className="font-bold text-emerald-700">Zero Pad Thermal Strain</span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => handleAwardBonus(topThree[1], '10 000 DZD')}
+                    className="w-full inline-flex items-center justify-center gap-2 py-2 px-4 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                  >
+                    <Award className="w-3.5 h-3.5 text-slate-300" />
+                    <span>{t('safety.award_bonus', {}, 'Award Safety Bonus')} (10 000 DZD)</span>
+                  </button>
+                </div>
+              )}
+
+              {/* 3rd Place - Bronze Contender */}
+              {topThree[2] && (
+                <div className="relative bg-gradient-to-b from-amber-900/10 via-amber-50/20 to-white border border-amber-800/20 rounded-2xl p-5 shadow-xs space-y-4 flex flex-col justify-between">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-800 text-amber-100 font-black text-[10px] uppercase tracking-wider px-3 py-0.5 rounded-full shadow-xs flex items-center gap-1 whitespace-nowrap">
+                    <Medal className="w-3.5 h-3.5 text-amber-200" />
+                    <span>{t('safety.podium_3rd', {}, '3rd Place - Bronze Contender')}</span>
+                  </div>
+
+                  <div className="pt-2 flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-full bg-amber-800/20 text-amber-900 font-extrabold font-data flex items-center justify-center text-sm shadow-xs border border-amber-800/30">
+                        {topThree[2].name.split(' ').map((n) => n[0]).join('')}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-sm text-slate-900 font-display">{topThree[2].name}</h3>
+                        <p className="text-[11px] text-slate-500 font-data">{topThree[2].vehicleName}</p>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <div className="text-2xl font-black font-data text-amber-900">
+                        {topThree[2].safetyScore}
+                        <span className="text-xs text-slate-400 font-normal">/100</span>
+                      </div>
+                      <span className="text-[9px] font-extrabold uppercase bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
+                        {topThree[2].status}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 text-xs text-slate-600 bg-amber-50/50 p-3 rounded-xl border border-amber-200/50">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-500">{currentLanguage === 'ar' ? 'المسافة:' : 'Distance:'}</span>
+                      <span className="font-bold font-data text-slate-800">{topThree[2].distanceKm.toLocaleString()} km</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-500">{currentLanguage === 'ar' ? 'الأداء:' : 'Performance:'}</span>
+                      <span className="font-bold text-amber-800">3,480 km Route Completed</span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => handleAwardBonus(topThree[2], '5 000 DZD')}
+                    className="w-full inline-flex items-center justify-center gap-2 py-2 px-4 bg-amber-800 hover:bg-amber-900 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                  >
+                    <Medal className="w-3.5 h-3.5 text-amber-200" />
+                    <span>{t('safety.award_bonus', {}, 'Award Safety Bonus')} (5 000 DZD)</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* DRIVER TELEMETRY TABLE & CONTROLS */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden space-y-4 p-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
@@ -453,6 +682,7 @@ export const SafetyPerformance: React.FC = () => {
               <table className="w-full text-left text-xs text-slate-700">
                 <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500 font-display border-y border-slate-200">
                   <tr>
+                    <th className="py-3 px-3 font-bold text-center">{currentLanguage === 'ar' ? 'الترتيب' : 'Rank'}</th>
                     <th className="py-3 px-4 font-bold">{currentLanguage === 'ar' ? 'السائق والمركبة' : currentLanguage === 'en' ? 'Driver & Vehicle' : 'Conducteur & Véhicule'}</th>
                     <th className="py-3 px-4 font-bold">{currentLanguage === 'ar' ? 'الخط / المسار' : currentLanguage === 'en' ? 'Route Sector' : 'Secteur / Trajet'}</th>
                     <th className="py-3 px-4 font-bold text-center">{currentLanguage === 'ar' ? 'الكبح الحاد' : currentLanguage === 'en' ? 'Harsh Brake' : 'Freinage'}</th>
@@ -464,104 +694,129 @@ export const SafetyPerformance: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredDrivers.map((d) => (
-                    <tr key={d.id} className="hover:bg-slate-50/80 transition group">
-                      {/* Driver Name & Vehicle */}
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-3">
-                          <div className={`h-9 w-9 rounded-full flex items-center justify-center text-xs font-extrabold font-data shrink-0 ${d.safetyScore >= 85 ? 'bg-emerald-100 text-emerald-800' : d.safetyScore >= 70 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'}`}>
-                            {d.name.split(' ').map(n => n[0]).join('')}
-                          </div>
-                          <div>
-                            <div className="font-bold text-slate-900 group-hover:text-indigo-600 transition flex items-center gap-2">
-                              <span>{d.name}</span>
-                              <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full ${d.status === 'Exemplary' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : d.status === 'Moderate Risk' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                                {d.status}
-                              </span>
-                            </div>
-                            <div className="text-[11px] text-slate-500 font-data flex items-center gap-1.5 mt-0.5">
-                              <button
-                                onClick={() => setSelectedVehicleId(d.id)}
-                                className="hover:underline font-semibold text-slate-700 cursor-pointer"
-                              >
-                                {d.vehicleName}
-                              </button>
-                              <span className="text-slate-300">•</span>
-                              <span>{d.vehiclePlate}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Route Sector */}
-                      <td className="py-3.5 px-4 font-medium text-slate-700">
-                        <div className="flex items-center gap-1.5 text-xs">
-                          <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                          <span>{d.routeSector}</span>
-                        </div>
-                        <div className="text-[10px] text-slate-400 font-data mt-0.5">
-                          {d.distanceKm.toLocaleString()} km {currentLanguage === 'ar' ? 'مقطوعة' : 'driven'}
-                        </div>
-                      </td>
-
-                      {/* Harsh Brakes */}
-                      <td className="py-3.5 px-4 text-center">
-                        <span className={`inline-block font-data font-bold text-sm px-2.5 py-1 rounded-lg ${d.harshBrakingCount > 10 ? 'bg-red-100 text-red-700 font-extrabold' : d.harshBrakingCount > 5 ? 'bg-amber-50 text-amber-800' : 'bg-slate-100 text-slate-700'}`}>
-                          {d.harshBrakingCount}
-                        </span>
-                      </td>
-
-                      {/* Rapid Accel */}
-                      <td className="py-3.5 px-4 text-center">
-                        <span className={`inline-block font-data font-bold text-sm px-2.5 py-1 rounded-lg ${d.rapidAccelCount > 10 ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}`}>
-                          {d.rapidAccelCount}
-                        </span>
-                      </td>
-
-                      {/* Cornering & Speeding */}
-                      <td className="py-3.5 px-4 text-center">
-                        <div className="font-data font-semibold text-slate-800">
-                          {d.highCorneringCount} <span className="text-slate-400 text-[10px]">turn</span> / {d.speedingIncidents} <span className="text-slate-400 text-[10px]">spd</span>
-                        </div>
-                      </td>
-
-                      {/* Calculated Safety Score */}
-                      <td className="py-3.5 px-4 text-center">
-                        <div className="inline-flex flex-col items-center">
-                          <span className={`font-data text-base font-black ${d.safetyScore >= 85 ? 'text-emerald-700' : d.safetyScore >= 70 ? 'text-amber-700' : 'text-red-600'}`}>
-                            {d.safetyScore} <span className="text-xs font-normal text-slate-400">/100</span>
+                  {filteredDrivers.map((d) => {
+                    const driverRank = rankedDrivers.findIndex((rd) => rd.id === d.id) + 1;
+                    return (
+                      <tr key={d.id} className="hover:bg-slate-50/80 transition group">
+                        {/* Leaderboard Rank Badge */}
+                        <td className="py-3.5 px-3 text-center">
+                          <span className={`inline-flex items-center justify-center h-7 w-7 rounded-full text-xs font-black font-data ${
+                            driverRank === 1 ? 'bg-amber-400 text-slate-950 shadow-2xs' :
+                            driverRank === 2 ? 'bg-slate-300 text-slate-900 shadow-2xs' :
+                            driverRank === 3 ? 'bg-amber-800 text-white shadow-2xs' :
+                            'bg-slate-100 text-slate-600'
+                          }`}>
+                            #{driverRank}
                           </span>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* Mechanical Correlation */}
-                      <td className="py-3.5 px-4 max-w-xs">
-                        <p className="text-[11px] text-slate-600 leading-tight bg-slate-50 p-2 rounded-lg border border-slate-100">
-                          {d.mechanicalImpact}
-                        </p>
-                      </td>
+                        {/* Driver Name & Vehicle */}
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center gap-3">
+                            <div className={`h-9 w-9 rounded-full flex items-center justify-center text-xs font-extrabold font-data shrink-0 ${d.safetyScore >= 85 ? 'bg-emerald-100 text-emerald-800' : d.safetyScore >= 70 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'}`}>
+                              {d.name.split(' ').map(n => n[0]).join('')}
+                            </div>
+                            <div>
+                              <div className="font-bold text-slate-900 group-hover:text-indigo-600 transition flex items-center gap-2">
+                                <span>{d.name}</span>
+                                <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full ${d.status === 'Exemplary' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : d.status === 'Moderate Risk' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                                  {d.status}
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-slate-500 font-data flex items-center gap-1.5 mt-0.5">
+                                <button
+                                  onClick={() => setSelectedVehicleId(d.id)}
+                                  className="hover:underline font-semibold text-slate-700 cursor-pointer"
+                                >
+                                  {d.vehicleName}
+                                </button>
+                                <span className="text-slate-300">•</span>
+                                <span>{d.vehiclePlate}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
 
-                      {/* Actions */}
-                      <td className="py-3.5 px-4 text-right space-y-1">
-                        <button
-                          onClick={() => handleIssueCoachingAlert(d.name)}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-bold transition cursor-pointer w-full justify-center"
-                        >
-                          <Bell className="h-3 w-3" />
-                          <span>{currentLanguage === 'ar' ? 'إرسال توجيه' : currentLanguage === 'en' ? 'Coaching Alert' : 'Alerte Driver'}</span>
-                        </button>
-                        {d.status === 'High Risk' && (
-                          <button
-                            onClick={() => handleCreateR6Audit(d)}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 text-[11px] font-bold transition cursor-pointer w-full justify-center"
-                          >
-                            <Wrench className="h-3 w-3" />
-                            <span>{currentLanguage === 'ar' ? 'تدقيق R6 ميكانيكي' : currentLanguage === 'en' ? 'Audit R6 WO' : 'Créer OT R6'}</span>
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                        {/* Route Sector */}
+                        <td className="py-3.5 px-4 font-medium text-slate-700">
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                            <span>{d.routeSector}</span>
+                          </div>
+                          <div className="text-[10px] text-slate-400 font-data mt-0.5">
+                            {d.distanceKm.toLocaleString()} km {currentLanguage === 'ar' ? 'مقطوعة' : 'driven'}
+                          </div>
+                        </td>
+
+                        {/* Harsh Brakes */}
+                        <td className="py-3.5 px-4 text-center">
+                          <span className={`inline-block font-data font-bold text-sm px-2.5 py-1 rounded-lg ${d.harshBrakingCount > 10 ? 'bg-red-100 text-red-700 font-extrabold' : d.harshBrakingCount > 5 ? 'bg-amber-50 text-amber-800' : 'bg-slate-100 text-slate-700'}`}>
+                            {d.harshBrakingCount}
+                          </span>
+                        </td>
+
+                        {/* Rapid Accel */}
+                        <td className="py-3.5 px-4 text-center">
+                          <span className={`inline-block font-data font-bold text-sm px-2.5 py-1 rounded-lg ${d.rapidAccelCount > 10 ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}`}>
+                            {d.rapidAccelCount}
+                          </span>
+                        </td>
+
+                        {/* Cornering & Speeding */}
+                        <td className="py-3.5 px-4 text-center">
+                          <div className="font-data font-semibold text-slate-800">
+                            {d.highCorneringCount} <span className="text-slate-400 text-[10px]">turn</span> / {d.speedingIncidents} <span className="text-slate-400 text-[10px]">spd</span>
+                          </div>
+                        </td>
+
+                        {/* Calculated Safety Score */}
+                        <td className="py-3.5 px-4 text-center">
+                          <div className="inline-flex flex-col items-center">
+                            <span className={`font-data text-base font-black ${d.safetyScore >= 85 ? 'text-emerald-700' : d.safetyScore >= 70 ? 'text-amber-700' : 'text-red-600'}`}>
+                              {d.safetyScore} <span className="text-xs font-normal text-slate-400">/100</span>
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Mechanical Correlation */}
+                        <td className="py-3.5 px-4 max-w-xs">
+                          <p className="text-[11px] text-slate-600 leading-tight bg-slate-50 p-2 rounded-lg border border-slate-100">
+                            {d.mechanicalImpact}
+                          </p>
+                        </td>
+
+                        {/* Actions */}
+                        <td className="py-3.5 px-4 text-right space-y-1">
+                          {d.safetyScore >= 85 ? (
+                            <button
+                              onClick={() => handleAwardBonus(d)}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/80 text-[11px] font-bold transition cursor-pointer w-full justify-center"
+                            >
+                              <Gift className="h-3 w-3 text-amber-600" />
+                              <span>{currentLanguage === 'ar' ? 'منح مكافأة' : 'Award Bonus'}</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleIssueCoachingAlert(d.name)}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-bold transition cursor-pointer w-full justify-center"
+                            >
+                              <Bell className="h-3 w-3" />
+                              <span>{currentLanguage === 'ar' ? 'إرسال توجيه' : currentLanguage === 'en' ? 'Coaching Alert' : 'Alerte Driver'}</span>
+                            </button>
+                          )}
+                          {d.status === 'High Risk' && (
+                            <button
+                              onClick={() => handleCreateR6Audit(d)}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 text-[11px] font-bold transition cursor-pointer w-full justify-center"
+                            >
+                              <Wrench className="h-3 w-3" />
+                              <span>{currentLanguage === 'ar' ? 'تدقيق R6 ميكانيكي' : currentLanguage === 'en' ? 'Audit R6 WO' : 'Créer OT R6'}</span>
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

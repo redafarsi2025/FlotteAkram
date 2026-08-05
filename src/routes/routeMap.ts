@@ -15,6 +15,9 @@ export const routeToScreenMap: Record<string, ScreenId> = {
   '/tenant-config': 'TENANT_CONFIG',
   '/translation': 'TRANSLATION_CENTER',
   '/safety': 'SAFETY_PERFORMANCE',
+  '/fuel': 'FUEL_LOGS',
+  '/telemetry': 'TELEMETRY_STREAM',
+  '/audit': 'AUDIT_LOG',
 };
 
 export const screenToRouteMap: Record<ScreenId, string> = {
@@ -32,4 +35,7 @@ export const screenToRouteMap: Record<ScreenId, string> = {
   TENANT_CONFIG: '/tenant-config',
   TRANSLATION_CENTER: '/translation',
   SAFETY_PERFORMANCE: '/safety',
+  FUEL_LOGS: '/fuel',
+  TELEMETRY_STREAM: '/telemetry',
+  AUDIT_LOG: '/audit',
 };

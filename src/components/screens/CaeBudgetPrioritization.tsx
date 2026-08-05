@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useFleet } from '../../context/FleetContext';
 import { useLocalization } from '../../context/LocalizationContext';
+import { recordAudit } from '../../services/auditService';
 import { KPIBadge } from '../common/KPIBadge';
 import {
   Calculator,
@@ -46,22 +47,42 @@ export const CaeBudgetPrioritization: React.FC = () => {
   const totalRepairDemand = caeItems.reduce((sum, i) => sum + i.repair_cost, 0);
 
   const handleApproveAllocation = () => {
+    const approvedItems = itemsWithCumulative.filter((item) => item.isWithinBudget);
+
     // Generate work orders for approved items
-    itemsWithCumulative
-      .filter((item) => item.isWithinBudget)
-      .forEach((item) => {
-        createWorkOrder({
-          vehicle_id: item.vehicle_id,
-          type: 'Corrective',
-          parts_used: [],
-          labor_hours: 6,
-          hourly_rate: 140,
-          before_notes: `CAE Approved Corrective Repair for ${item.fault_code} (${item.fault_name}). Rank Score: ${item.rank_score}.`,
-          assigned_mechanic_id: 'M-01',
-          assigned_mechanic_name: 'David Thorne (Workshop Technician)',
-          related_fault_code: item.fault_code,
-        });
+    approvedItems.forEach((item) => {
+      createWorkOrder({
+        vehicle_id: item.vehicle_id,
+        type: 'Corrective',
+        parts_used: [],
+        labor_hours: 6,
+        hourly_rate: 140,
+        before_notes: `CAE Approved Corrective Repair for ${item.fault_code} (${item.fault_name}). Rank Score: ${item.rank_score}.`,
+        assigned_mechanic_id: 'M-01',
+        assigned_mechanic_name: 'David Thorne (Workshop Technician)',
+        related_fault_code: item.fault_code,
       });
+    });
+
+    // Record audit log entry for CAE budget allocation decision
+    recordAudit(
+      'cae_budget',
+      `CAE-ALLOC-${Date.now()}`,
+      'APPROVAL',
+      {
+        total_demand: totalRepairDemand,
+        available_budget: caeAvailableBudget,
+        approved_count: approvedCount,
+        deferred_count: deferredCount,
+      },
+      {
+        approved_items_count: approvedItems.length,
+        approved_total_cost: runningCost,
+        status: 'APPROVED_BY_DIRECTOR',
+      },
+      'usr-director-01',
+      'DIRECTOR'
+    );
 
     setIsApprovedMessage(true);
     setTimeout(() => setIsApprovedMessage(false), 4000);

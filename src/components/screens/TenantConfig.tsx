@@ -32,7 +32,12 @@ import {
   Sliders,
   ShieldCheck,
   Languages,
+  Cpu,
+  Radio,
 } from 'lucide-react';
+import { DeviceMapping, TelematicsProviderType } from '../../types';
+import { fetchDeviceMappings, saveDeviceMapping } from '../../services/telematicsService';
+import { seedDemoTenant } from '../../services/demoSeedService';
 
 const BRAND_COLOR_PRESETS = [
   { name: 'Indigo (Default)', hex: '#4f46e5', bg: 'bg-indigo-600', ring: 'ring-indigo-500' },
@@ -79,8 +84,47 @@ export const TenantConfig: React.FC = () => {
     setActiveTenantId,
     addTenantConfig,
     costRecords,
+    vehicles,
   } = useFleet();
   const { t } = useLocalization();
+
+  // Telematics Device Mappings State
+  const [deviceMappings, setDeviceMappings] = useState<DeviceMapping[]>([]);
+  const [savingMappingVehicleId, setSavingMappingVehicleId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchDeviceMappings().then(setDeviceMappings).catch(console.warn);
+  }, [activeTenant.id]);
+
+  const handleDeviceMappingChange = async (
+    vehicleId: string,
+    provider: TelematicsProviderType,
+    externalDeviceId: string
+  ) => {
+    setSavingMappingVehicleId(vehicleId);
+    try {
+      const saved = await saveDeviceMapping({
+        tenant_id: activeTenant.id,
+        vehicle_id: vehicleId,
+        provider,
+        external_device_id: externalDeviceId,
+      });
+      setDeviceMappings((prev) => {
+        const idx = prev.findIndex((m) => m.vehicle_id === vehicleId && m.tenant_id === activeTenant.id);
+        if (idx >= 0) {
+          const next = [...prev];
+          next[idx] = saved;
+          return next;
+        }
+        return [...prev, saved];
+      });
+      showToast(`Telematics adapter set to "${provider.toUpperCase()}" for vehicle ${vehicleId}`);
+    } catch (err) {
+      console.warn('Failed to save device mapping', err);
+    } finally {
+      setSavingMappingVehicleId(null);
+    }
+  };
 
   // Local form state initialized with activeTenant values
   const [formData, setFormData] = useState<TenantConfigType>({
@@ -96,6 +140,25 @@ export const TenantConfig: React.FC = () => {
   const [wizardStep, setWizardStep] = useState<number>(1);
   const [isCreatingNew, setIsCreatingNew] = useState<boolean>(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'pending' | 'saving'>('saved');
+  const [isSeedingDemo, setIsSeedingDemo] = useState<boolean>(false);
+
+  const isNonProduction = typeof process !== 'undefined' ? process.env.NODE_ENV !== 'production' : true;
+
+  const handleLoadDemoData = async () => {
+    setIsSeedingDemo(true);
+    try {
+      const res = await seedDemoTenant(activeTenant.id);
+      showToast(`Loaded realistic demo fleet for ${res.data.tenantConfig.societyName} (${res.counts.vehicles} heavy trucks, Rules R1-R7 active)`);
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (err) {
+      console.warn('Failed to seed demo data', err);
+      showToast('Failed to load demo data. Please check logs.');
+    } finally {
+      setIsSeedingDemo(false);
+    }
+  };
 
   const debouncedFormData = useDebounce(formData, 2000);
   const lastSavedDataRef = React.useRef<string>('');
@@ -270,6 +333,7 @@ export const TenantConfig: React.FC = () => {
     { id: 3, title: '3. Fleet Branding & Theme', icon: Palette },
     { id: 4, title: '4. Financials & Operation Caps', icon: CreditCard },
     { id: 5, title: '5. Contact & Supabase Review', icon: ShieldCheck },
+    { id: 6, title: '6. Telematics & Devices', icon: Cpu },
   ];
 
   return (
@@ -365,6 +429,18 @@ export const TenantConfig: React.FC = () => {
             <Plus className="w-4 h-4" />
             New Society
           </button>
+
+          {isNonProduction && (
+            <button
+              onClick={handleLoadDemoData}
+              disabled={isSeedingDemo}
+              className="flex items-center gap-1.5 rounded-lg bg-amber-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm hover:bg-amber-700 disabled:opacity-50 transition-colors cursor-pointer"
+              title="Load realistic enterprise demo seed data (200 heavy trucks, Rules R1-R7)"
+            >
+              <RefreshCw className={`w-4 h-4 ${isSeedingDemo ? 'animate-spin' : ''}`} />
+              <span>{isSeedingDemo ? 'Seeding...' : 'Load Demo Data'}</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -1106,6 +1182,137 @@ export const TenantConfig: React.FC = () => {
                     <span className="text-slate-400 block">Allocated Budget:</span>
                     <strong className="text-slate-900">{formData.currencySymbol}{formData.allocatedBudget.toLocaleString()}</strong>
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 6: TELEMATICS & DEVICE MAPPINGS */}
+          {wizardStep === 6 && (
+            <div className="space-y-6 animate-in fade-in">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    6. Vendor-Agnostic Telematics & Device Hardware Mappings
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Configure telemetry providers per vehicle. Decision Rules (R1–R7) run seamlessly across manual/declarative data and connected hardware boxes (Teltonika / Flespi / Wialon).
+                  </p>
+                </div>
+                <Radio className="w-5 h-5 text-indigo-600 animate-pulse" />
+              </div>
+
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2 text-slate-700 font-medium">
+                  <Cpu className="w-4 h-4 text-indigo-600" />
+                  <span>
+                    Tenant Telematics Protocol: <strong className="text-slate-900">Pluggable Vendor Adapter Engine</strong>
+                  </span>
+                </div>
+                <span className="bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded text-[11px]">
+                  R1–R7 Vendor Independent
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                  Per-Vehicle Hardware Mapping Matrix
+                </h4>
+                <div className="divide-y divide-slate-200 border border-slate-200 rounded-xl overflow-hidden bg-white shadow-2xs">
+                  {vehicles.map((v) => {
+                    const mapping = deviceMappings.find((m) => m.vehicle_id === v.id);
+                    const currentProvider: TelematicsProviderType = mapping?.provider || 'manual';
+                    const currentExternalId = mapping?.external_device_id || `MAN-${v.id}`;
+                    const isSaving = savingMappingVehicleId === v.id;
+
+                    return (
+                      <div
+                        key={v.id}
+                        className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-50/60 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs shrink-0">
+                            {v.plate.substring(0, 4)}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-sm text-slate-900">
+                                {v.name} ({v.plate})
+                              </span>
+                              <span
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
+                                  v.status === 'Healthy'
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : 'bg-red-100 text-red-800'
+                                }`}
+                              >
+                                {v.status}
+                              </span>
+                            </div>
+                            <span className="text-xs text-slate-500">
+                              ID: {v.id} • Classification: {v.classification}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                          <div className="flex flex-col">
+                            <label className="text-[10px] font-bold uppercase text-slate-500 mb-0.5">
+                              Telematics Adapter
+                            </label>
+                            <select
+                              value={currentProvider}
+                              onChange={(e) =>
+                                handleDeviceMappingChange(
+                                  v.id,
+                                  e.target.value as TelematicsProviderType,
+                                  currentExternalId
+                                )
+                              }
+                              className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 cursor-pointer bg-white"
+                            >
+                              <option value="manual">Manual / Declarative (Pilote Numilog)</option>
+                              <option value="teltonika">Teltonika FM/FMM Series (Phase 2 OBD)</option>
+                              <option value="flespi_wialon">Flespi / Wialon Middleware (Phase 2 Stream)</option>
+                            </select>
+                          </div>
+
+                          <div className="flex flex-col">
+                            <label className="text-[10px] font-bold uppercase text-slate-500 mb-0.5">
+                              External Device ID / IMEI
+                            </label>
+                            <input
+                              type="text"
+                              defaultValue={currentExternalId}
+                              onBlur={(e) => {
+                                if (e.target.value !== currentExternalId) {
+                                  handleDeviceMappingChange(v.id, currentProvider, e.target.value);
+                                }
+                              }}
+                              className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-mono text-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 w-48"
+                              placeholder="IMEI / Serial"
+                            />
+                          </div>
+
+                          <div className="flex items-center gap-1.5 pt-4 sm:pt-0">
+                            {currentProvider === 'manual' ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Active
+                              </span>
+                            ) : (
+                              <span
+                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200"
+                                title="Phase 2 credentials required"
+                              >
+                                <Radio className="w-3.5 h-3.5 text-amber-600 animate-pulse" /> Phase 2 Standby
+                              </span>
+                            )}
+                            {isSaving && <RefreshCw className="w-3.5 h-3.5 text-indigo-600 animate-spin" />}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>

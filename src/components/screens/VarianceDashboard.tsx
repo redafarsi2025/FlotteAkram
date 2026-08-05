@@ -26,6 +26,7 @@ export const VarianceDashboard: React.FC = () => {
     'Corrective Repair',
     'Parts & Consumables',
     'Emergency Diagnostics',
+    'Fuel',
   ];
 
   // Calculate totals by category

@@ -24,6 +24,9 @@ const DriverMobileView = lazy(() => import('./components/screens/DriverMobileVie
 const TenantConfig = lazy(() => import('./components/screens/TenantConfig').then(m => ({ default: m.TenantConfig })));
 const TranslationCenter = lazy(() => import('./components/screens/TranslationCenter').then(m => ({ default: m.TranslationCenter })));
 const SafetyPerformance = lazy(() => import('./components/screens/SafetyPerformance').then(m => ({ default: m.SafetyPerformance })));
+const FuelModule = lazy(() => import('./components/screens/FuelModule').then(m => ({ default: m.FuelModule })));
+const TelemetryStream = lazy(() => import('./components/screens/TelemetryStream').then(m => ({ default: m.TelemetryStream })));
+const AuditLog = lazy(() => import('./components/screens/AuditLog').then(m => ({ default: m.AuditLog })));
 
 const RouteFallback: React.FC = () => (
   <div className="flex items-center justify-center h-full w-full py-24">
@@ -73,6 +76,9 @@ const AppLayout: React.FC = () => {
               <Route path="/tenant-config" element={<TenantConfig />} />
               <Route path="/translation" element={<TranslationCenter />} />
               <Route path="/safety" element={<SafetyPerformance />} />
+              <Route path="/fuel" element={<FuelModule />} />
+              <Route path="/telemetry" element={<TelemetryStream />} />
+              <Route path="/audit" element={<AuditLog />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>

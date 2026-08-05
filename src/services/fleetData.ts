@@ -133,17 +133,10 @@ export async function fetchVehicles(bypassCache: boolean = false): Promise<Vehic
       .eq('tenant_id', tenantId);
     
     if (error) {
-      if ((import.meta as any).env?.DEV) {
-        console.warn('Supabase fetchVehicles error, fallback to seed in DEV:', error);
-        return INITIAL_VEHICLES.map((v) => ({ ...v, tenant_id: tenantId }));
-      }
       throw new Error(`fetchVehicles failed: ${error.message}`);
     }
     
-    if (!data || data.length === 0) {
-      if ((import.meta as any).env?.DEV) {
-        return INITIAL_VEHICLES.map((v) => ({ ...v, tenant_id: tenantId }));
-      }
+    if (!data) {
       return [];
     }
     
@@ -162,17 +155,10 @@ export async function fetchInventory(bypassCache: boolean = false): Promise<Inve
       .eq('tenant_id', tenantId);
     
     if (error) {
-      if ((import.meta as any).env?.DEV) {
-        console.warn('Supabase fetchInventory error, fallback to seed in DEV:', error);
-        return INITIAL_INVENTORY.map((item) => ({ ...item, tenant_id: tenantId }));
-      }
       throw new Error(`fetchInventory failed: ${error.message}`);
     }
     
-    if (!data || data.length === 0) {
-      if ((import.meta as any).env?.DEV) {
-        return INITIAL_INVENTORY.map((item) => ({ ...item, tenant_id: tenantId }));
-      }
+    if (!data) {
       return [];
     }
     
@@ -191,17 +177,10 @@ export async function fetchWorkOrders(bypassCache: boolean = false): Promise<Wor
       .eq('tenant_id', tenantId);
     
     if (error) {
-      if ((import.meta as any).env?.DEV) {
-        console.warn('Supabase fetchWorkOrders error, fallback to seed in DEV:', error);
-        return INITIAL_WORK_ORDERS.map((wo) => ({ ...wo, tenant_id: tenantId }));
-      }
       throw new Error(`fetchWorkOrders failed: ${error.message}`);
     }
     
-    if (!data || data.length === 0) {
-      if ((import.meta as any).env?.DEV) {
-        return INITIAL_WORK_ORDERS.map((wo) => ({ ...wo, tenant_id: tenantId }));
-      }
+    if (!data) {
       return [];
     }
     
@@ -241,17 +220,10 @@ export async function fetchIncidents(bypassCache: boolean = false): Promise<Inci
       .eq('tenant_id', tenantId);
     
     if (error) {
-      if ((import.meta as any).env?.DEV) {
-        console.warn('Supabase fetchIncidents error, fallback to seed in DEV:', error);
-        return INITIAL_INCIDENTS.map((inc) => ({ ...inc, tenant_id: tenantId }));
-      }
       throw new Error(`fetchIncidents failed: ${error.message}`);
     }
     
-    if (!data || data.length === 0) {
-      if ((import.meta as any).env?.DEV) {
-        return INITIAL_INCIDENTS.map((inc) => ({ ...inc, tenant_id: tenantId }));
-      }
+    if (!data) {
       return [];
     }
     
@@ -270,17 +242,10 @@ export async function fetchCostRecords(bypassCache: boolean = false): Promise<Co
       .eq('tenant_id', tenantId);
     
     if (error) {
-      if ((import.meta as any).env?.DEV) {
-        console.warn('Supabase fetchCostRecords error, fallback to seed in DEV:', error);
-        return INITIAL_COST_RECORDS.map((c) => ({ ...c, tenant_id: tenantId }));
-      }
       throw new Error(`fetchCostRecords failed: ${error.message}`);
     }
     
-    if (!data || data.length === 0) {
-      if ((import.meta as any).env?.DEV) {
-        return INITIAL_COST_RECORDS.map((c) => ({ ...c, tenant_id: tenantId }));
-      }
+    if (!data) {
       return [];
     }
     
@@ -299,17 +264,10 @@ export async function fetchAlerts(bypassCache: boolean = false): Promise<FleetAl
       .eq('tenant_id', tenantId);
     
     if (error) {
-      if ((import.meta as any).env?.DEV) {
-        console.warn('Supabase fetchAlerts error, fallback to seed in DEV:', error);
-        return INITIAL_ALERTS.map((a) => ({ ...a, tenant_id: tenantId }));
-      }
       throw new Error(`fetchAlerts failed: ${error.message}`);
     }
     
-    if (!data || data.length === 0) {
-      if ((import.meta as any).env?.DEV) {
-        return INITIAL_ALERTS.map((a) => ({ ...a, tenant_id: tenantId }));
-      }
+    if (!data) {
       return [];
     }
     
@@ -419,6 +377,7 @@ export async function getVarianceAnalysis(
     'Corrective Repair',
     'Parts & Consumables',
     'Emergency Diagnostics',
+    'Fuel',
   ];
 
   const categoryBreakdown = categories.map((cat) => {

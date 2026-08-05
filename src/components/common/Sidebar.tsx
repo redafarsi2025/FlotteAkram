@@ -15,9 +15,12 @@ import {
   Truck,
   Smartphone,
   ShieldAlert,
+  ShieldCheck,
   Building2,
   Globe,
+  Fuel,
   Sparkles,
+  Radio,
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
@@ -87,6 +90,25 @@ export const Sidebar: React.FC = () => {
       label: t('nav.safety_performance', {}, 'Safety Performance'),
       icon: ShieldAlert,
       description: t('nav.safety_desc', {}, 'Harsh braking, acceleration & driver safety scores'),
+    },
+    {
+      id: 'FUEL_LOGS',
+      label: t('nav.fuel_logs', {}, 'Fuel & Consumption'),
+      icon: Fuel,
+      description: t('nav.fuel_desc', {}, 'Log fuel, consumption L/100km & R7 anomaly detection'),
+      badgeCount: alerts.filter((a) => a.rule_id === 'R7' && !a.read).length,
+    },
+    {
+      id: 'TELEMETRY_STREAM',
+      label: t('nav.telemetry_stream', {}, 'Live Telemetry Stream'),
+      icon: Radio,
+      description: t('nav.telemetry_desc', {}, 'Real-time GPS coords, OBD faults & adapter statuses'),
+    },
+    {
+      id: 'AUDIT_LOG',
+      label: t('nav.audit_log', {}, 'Immutable Audit Trail'),
+      icon: ShieldCheck,
+      description: t('nav.audit_desc', {}, 'Append-only audit ledger for mutations, work orders, rule overrides & CAE decisions'),
     },
     {
       id: 'MECHANIC_MOBILE_QUEUE',

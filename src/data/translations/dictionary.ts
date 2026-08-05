@@ -302,7 +302,77 @@ const DICTIONARY_RAW_DATA: RawTranslationItem[] = [
   { key: 'modal.tab_history', namespace: 'modals', fr: 'Historique Service', ar: 'سجل الصيانة', en: 'Service History' },
   { key: 'modal.tab_cost', namespace: 'modals', fr: 'Analyse des Coûts', ar: 'تحليل التكاليف', en: 'Cost Audit' },
   { key: 'modal.tab_parts', namespace: 'modals', fr: 'Pièces Associées', ar: 'قطع الغيار المرتبطة', en: 'Parts Allocation' },
-  { key: 'modal.tab_work_orders', namespace: 'modals', fr: 'Ordres de Travail', ar: 'أوامر الصيانة', en: 'Work Orders' }
+  { key: 'modal.tab_work_orders', namespace: 'modals', fr: 'Ordres de Travail', ar: 'أوامر الصيانة', en: 'Work Orders' },
+
+  // ==========================================
+  // FUEL MODULE NAMESPACE
+  // ==========================================
+  { key: 'nav.fuel_logs', namespace: 'nav', fr: 'Carburant & Consommation', ar: 'الوقود والاستهلاك', en: 'Fuel & Consumption' },
+  { key: 'nav.fuel_desc', namespace: 'nav', fr: 'Suivi carburant, L/100km & détection d\'anomalies R7', ar: 'تتبع الوقود، استهلاك L/100km واكتشاف التجاوزات R7', en: 'Log fuel, consumption L/100km & R7 anomaly detection' },
+  { key: 'fuel.header_tag', namespace: 'fuel', fr: 'Télématique & Opérations Carburant', ar: 'التليمتريات وعمليات الوقود', en: 'Telemetry & Fleet Fuel Operations' },
+  { key: 'fuel.header_title', namespace: 'fuel', fr: 'Consommation de Carburant & Détection d\'Anomalies R7', ar: 'استهلاك الوقود واكتشاف تجاوزات R7', en: 'Fuel Consumption & R7 Anomaly Detection' },
+  { key: 'fuel.header_desc', namespace: 'fuel', fr: 'Enregistrez les pleins, calculez l\'efficacité en L/100km et détectez les pics dépassant 20% de la moyenne sur 90 jours.', ar: 'تسجيل عمليات التزود بالوقود، حساب L/100km واكتشاف الزيادات بنسبة >20% عن المعدل.', en: 'Track fuel logs, compute L/100km efficiency between refueling events, and flag consumption spikes exceeding 20% over the trailing 90-day baseline.' },
+  { key: 'fuel.total_volume', namespace: 'fuel', fr: 'Volume Total de Carburant', ar: 'إجمالي حجم الوقود', en: 'Total Fuel Volume' },
+  { key: 'fuel.total_cost', namespace: 'fuel', fr: 'Dépenses Totales Carburant', ar: 'إجمالي نفقات الوقود', en: 'Total Fuel Expenditure' },
+  { key: 'fuel.avg_consumption', namespace: 'fuel', fr: 'Consommation Moyenne Flotte', ar: 'متوسط استهلاك الأسطول', en: 'Fleet Avg Consumption' },
+  { key: 'fuel.anomalies_flagged', namespace: 'fuel', fr: 'Anomalies Carburant R7', ar: 'تجاوزات الوقود R7', en: 'R7 Fuel Anomalies' },
+  { key: 'fuel.recorded_logs', namespace: 'fuel', fr: 'pleins enregistrés', ar: 'عملية تزود مسجلة', en: 'recorded refuel entries' },
+  { key: 'fuel.log_entry_title', namespace: 'fuel', fr: 'Enregistrer un Plein de Carburant', ar: 'تسجيل عملية تزود بالوقود', en: 'Record Refuel Entry' },
+  { key: 'fuel.select_vehicle', namespace: 'fuel', fr: 'Véhicule', ar: 'المركبة', en: 'Vehicle' },
+  { key: 'fuel.volume_liters', namespace: 'fuel', fr: 'Volume (Litres)', ar: 'الحجم (لتر)', en: 'Fuel Volume (Liters)' },
+  { key: 'fuel.cost_amount', namespace: 'fuel', fr: 'Coût', ar: 'التكلفة', en: 'Cost' },
+  { key: 'fuel.odometer_km', namespace: 'fuel', fr: 'Compteur (km)', ar: 'عداد المسافة (كم)', en: 'Odometer (km)' },
+  { key: 'fuel.logged_at', namespace: 'fuel', fr: 'Date & Heure du Plein', ar: 'تاريخ ووقت التزود', en: 'Refuel Date & Time' },
+  { key: 'fuel.submit_btn', namespace: 'fuel', fr: 'Enregistrer le Plein', ar: 'تسجيل العملية', en: 'Record Refuel Entry' },
+  { key: 'fuel.saving', namespace: 'fuel', fr: 'Enregistrement...', ar: 'جاري الحفظ...', en: 'Recording...' },
+  { key: 'fuel.consumption_trend_title', namespace: 'fuel', fr: 'Tendance de Consommation par Véhicule', ar: 'اتجاه الاستهلاك حسب المركبة', en: 'Per-Vehicle Consumption & Log Trend' },
+
+  // ==========================================
+  // TELEMETRY STREAM NAMESPACE
+  // ==========================================
+  { key: 'nav.telemetry_stream', namespace: 'nav', fr: 'Flux Télématique Live', ar: 'البث التليمتري المباشر', en: 'Live Telemetry Stream' },
+  { key: 'nav.telemetry_desc', namespace: 'nav', fr: 'Coord. GPS, codes défaut OBD & statut des adaptateurs', ar: 'إحداثيات GPS، رموز أعطال OBD وحالة المحولات', en: 'Real-time GPS coords, OBD faults & adapter statuses' },
+  { key: 'telemetry.header_tag', namespace: 'telemetry', fr: 'Couche d\'Ingestion Vendor-Agnostic', ar: 'طبقة التجميع المستقلة عن الموردين', en: 'Vendor-Agnostic Ingestion Layer' },
+  { key: 'telemetry.header_title', namespace: 'telemetry', fr: 'Flux Télématique & Positions en Temps Réel', ar: 'البث التليمتري والمواقع المباشرة', en: 'Real-Time Telemetry Stream & Positions' },
+  { key: 'telemetry.header_desc', namespace: 'telemetry', fr: 'Visualisez les flux de télémétrie OBD-II et la géolocalisation des véhicules via le contrat d\'interface TelematicsProvider.', ar: 'عرض بيانات الفحص OBD-II والتتبع عبر واجهة TelematicsProvider الموحدة.', en: 'Visualize real-time OBD-II diagnostic streams and GPS coordinates normalized via the TelematicsProvider abstraction layer.' },
+  { key: 'telemetry.active_streams', namespace: 'telemetry', fr: 'Flux Actifs Flotte', ar: 'التدفقات النشطة للأسطول', en: 'Active Fleet Streams' },
+  { key: 'telemetry.manual_adapters', namespace: 'telemetry', fr: 'Adaptateurs Manuel / Pilote', ar: 'محولات الإدخال اليدوي', en: 'Manual / Pilot Adapters' },
+  { key: 'telemetry.phase2_standby', namespace: 'telemetry', fr: 'Standby Connecteurs Phase 2', ar: 'محولات Phase 2 في انتظار الربط', en: 'Phase 2 Adapter Standby' },
+  { key: 'telemetry.active_faults', namespace: 'telemetry', fr: 'Codes Défaut Actifs Streamed', ar: 'أعطال OBD المتدفقة', en: 'Active OBD Faults Streamed' },
+  { key: 'telemetry.simulate_fault_btn', namespace: 'telemetry', fr: 'Injecter Défaut OBD (R1 Test)', ar: 'حقن عطل OBD اختبار R1', en: 'Simulate OBD Fault (R1 Test)' },
+  { key: 'telemetry.simulate_ping_btn', namespace: 'telemetry', fr: 'Pinger Position GPS', ar: 'تحديث موقع GPS', en: 'Ping GPS Position' },
+  { key: 'telemetry.chart_title', namespace: 'telemetry', fr: 'Tendance Télématique & Diagnostic (Dernière Heure)', ar: 'اتجاه البيانات التليمتري والتشخيص (الساعة الأخيرة)', en: 'Telemetry & Diagnostic Trend (Last 60 Mins)' },
+  { key: 'telemetry.chart_desc', namespace: 'telemetry', fr: 'Évolution en temps réel des codes défauts OBD, vitesses GPS et température moteur.', ar: 'التطور المباشر لرموز أعطال OBD وسرعة GPS ودرجة حرارة المحرك.', en: 'Real-time progression of OBD fault codes, GPS speeds, and engine thermal metrics across the fleet.' },
+
+  // ==========================================
+  // AUDIT LOG NAMESPACE
+  // ==========================================
+  { key: 'nav.audit_log', namespace: 'nav', fr: 'Journal d\'Audit Immuable', ar: 'سجل المراجعة غير Qابل للتعديل', en: 'Immutable Audit Trail' },
+  { key: 'nav.audit_desc', namespace: 'nav', fr: 'Traçabilité légale et immuable des mutations véhicules, ordres de travail, surcharges R1-R7 et décisions CAE', ar: 'التتبع القانوني للعمليات والقرارات', en: 'Append-only audit ledger for mutations, work orders, rule overrides & CAE decisions' },
+  { key: 'audit.header_tag', namespace: 'audit', fr: 'Conformité & Registre Contractuel (Append-Only)', ar: 'سجل الامتثال والعقود', en: 'Compliance & Contractual Ledger (Append-Only)' },
+  { key: 'audit.header_title', namespace: 'audit', fr: 'Journal d\'Audit Immuable Multi-Tenant', ar: 'سجل المراجعة المحفوظ للشركات', en: 'Multi-Tenant Immutable Audit Trail' },
+  { key: 'audit.header_desc', namespace: 'audit', fr: 'Historique non-modifiable de toutes les modifications de véhicules, ordres de travail, dérogations de règles R1-R7 et approbations budgétaires CAE.', ar: 'سجل غير قابل للتعديل لجميع تحديثات المركبات، أوامر الصيانة، وتجاوزات القواعد.', en: 'Tamper-proof ledger of all vehicle updates, work order transitions, R1-R7 rule overrides, and CAE budget approvals.' },
+  { key: 'audit.filter_entity', namespace: 'audit', fr: 'Type d\'Entité', ar: 'نوع الكيان', en: 'Entity Type' },
+  { key: 'audit.filter_all_entities', namespace: 'audit', fr: 'Toutes les Entités', ar: 'جميع الكيانات', en: 'All Entities' },
+  { key: 'audit.filter_start_date', namespace: 'audit', fr: 'Date Début', ar: 'تاريخ البداية', en: 'Start Date' },
+  { key: 'audit.filter_end_date', namespace: 'audit', fr: 'Date Fin', ar: 'تاريخ النهاية', en: 'End Date' },
+  { key: 'audit.col_timestamp', namespace: 'audit', fr: 'Horodatage (UTC)', ar: 'الطابع الزمني', en: 'Timestamp (UTC)' },
+  { key: 'audit.col_actor', namespace: 'audit', fr: 'Acteur & Rôle', ar: 'الactor والرتبة', en: 'Actor & Role' },
+  { key: 'audit.col_entity', namespace: 'audit', fr: 'Entité & ID', ar: 'الكيان والمُعرِّف', en: 'Entity & ID' },
+  { key: 'audit.col_action', namespace: 'audit', fr: 'Action Executée', ar: 'الإجراء المُنَفَّذ', en: 'Action Executed' },
+  { key: 'audit.col_diff', namespace: 'audit', fr: 'Différentiel État (Before / After)', ar: 'الفارق بين الحالتين', en: 'State Delta (Before / After)' },
+  { key: 'audit.empty_trail', namespace: 'audit', fr: 'Aucune entrée d\'audit trouvée pour ces filtres.', ar: 'لم يتم العثور على أية سجلات تدقيق لهذه التصفية.', en: 'No audit trail entries matched the specified filters.' },
+
+  // ==========================================
+  // SAFETY LEADERBOARD NAMESPACE
+  // ==========================================
+  { key: 'safety.leaderboard_title', namespace: 'safety', fr: 'Classement & Champions Sécurité Conducteurs', ar: 'لوحة صدارة السائقين المتميزين للسلامة', en: 'Driver Safety Leaderboard & Champions' },
+  { key: 'safety.leaderboard_desc', namespace: 'safety', fr: 'Classement dynamique fondé sur le score global de télémesure (G-Force, freinage, zéro alerte OBD)', ar: 'ترتيب ديناميكي مبني على نقاط التليمتري الشاملة (الفرملة، التسارع، وسلامة OBD)', en: 'Dynamic driver ranking derived from aggregate telemetry safety scores (G-force, braking, zero OBD faults)' },
+  { key: 'safety.top_rank', namespace: 'safety', fr: 'Rang', ar: 'المرتبة', en: 'Rank' },
+  { key: 'safety.award_bonus', namespace: 'safety', fr: 'Attribuer Prime CNPSR', ar: 'منح مكافأة السلامة', en: 'Award Safety Bonus' },
+  { key: 'safety.podium_1st', namespace: 'safety', fr: '1er Rang - Or', ar: 'المركز الأول - ذهبي', en: '1st Place - Gold' },
+  { key: 'safety.podium_2nd', namespace: 'safety', fr: '2ème Rang - Argent', ar: 'المركز الثاني - فضي', en: '2nd Place - Silver' },
+  { key: 'safety.podium_3rd', namespace: 'safety', fr: '3ème Rang - Bronze', ar: 'المركز الثالث - برونزي', en: '3rd Place - Bronze' }
 ];
 
 // Generate structured INITIAL_TRANSLATIONS array
