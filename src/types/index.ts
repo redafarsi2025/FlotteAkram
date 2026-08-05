@@ -347,6 +347,7 @@ export interface TenantConfig {
   primaryColor?: string; // Custom hex or tailwind class for brand primary theme (e.g. "#4f46e5")
   accentColor?: string; // Custom accent color (e.g. "#059669")
   brandTagline?: string; // Custom tagline (e.g. "Excellence in Regional Transport")
+  enabled_modules?: string[]; // Array of active ScreenIds / Module names for tenant-level subscription guards
   lastUpdated: string; // e.g. "2026-08-01"
 }
 

@@ -3,13 +3,15 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { useFleet } from './context/FleetContext';
 import { AppProviders } from './context/AppProviders';
 import { useAuth } from './context/AuthContext';
-import { LocalizationProvider, useLocalization } from './context/LocalizationContext';
+import { useLocalization } from './context/LocalizationContext';
 import { TopBar } from './components/common/TopBar';
 import { Sidebar } from './components/common/Sidebar';
 import { VehicleDetailModal } from './components/vehicle/VehicleDetailModal';
+import { ProtectedRoute } from './components/guards/ProtectedRoute';
+import { getRoleDefaultRoute } from './components/screens/ForbiddenScreen';
 import { routeToScreenMap } from './routes/routeMap';
 
-// LandingPage loaded statically as default route
+// LandingPage loaded statically as default public route
 import { LandingPage } from './components/screens/LandingPage';
 
 // Lazy loaded screen components for route-based bundle splitting
@@ -41,8 +43,29 @@ const RouteFallback: React.FC = () => (
   </div>
 );
 
-const AppLayout: React.FC = () => {
+// Separate modal container component so AppLayout does not re-render on fleet context updates
+const VehicleDetailModalContainer: React.FC = () => {
   const { selectedVehicleId, setSelectedVehicleId } = useFleet();
+  if (!selectedVehicleId) return null;
+  return (
+    <VehicleDetailModal
+      vehicleId={selectedVehicleId}
+      onClose={() => setSelectedVehicleId(null)}
+    />
+  );
+};
+
+// Smart fallback component for wildcards (*) in authenticated vs unauthenticated context
+const SmartRouteFallback: React.FC = () => {
+  const { currentRole, currentUser } = useAuth();
+  if (currentUser || currentRole) {
+    const defaultRoute = getRoleDefaultRoute(currentRole);
+    return <Navigate to={defaultRoute} replace />;
+  }
+  return <Navigate to="/" replace />;
+};
+
+const AppLayout: React.FC = () => {
   const { currentScreen, changeScreen } = useAuth();
   const { dir } = useLocalization();
   const location = useLocation();
@@ -70,40 +93,182 @@ const AppLayout: React.FC = () => {
         <main className="flex-1 overflow-y-auto min-w-0 p-4 lg:p-6 pb-12">
           <Suspense fallback={<RouteFallback />}>
             <Routes>
+              {/* Public Route */}
               <Route path="/" element={<LandingPage />} />
-              <Route path="/dashboard" element={<StrategicDashboard />} />
-              <Route path="/variance" element={<VarianceDashboard />} />
-              <Route path="/vehicles" element={<FleetHealthGrid />} />
-              <Route path="/inventory" element={<InventoryDashboard />} />
-              <Route path="/work-orders" element={<WorkOrderQueue />} />
-              <Route path="/pm-schedules" element={<PMSchedulesView />} />
-              <Route path="/edi-suppliers" element={<EdiSuppliersView />} />
-              <Route path="/conflicts" element={<ConflictAlerts />} />
-              <Route path="/cae" element={<CaeBudgetPrioritization />} />
-              <Route path="/incidents" element={<IncidentReports />} />
-              <Route path="/mechanic" element={<MechanicMobileQueue />} />
-              <Route path="/driver" element={<DriverMobileView />} />
-              <Route path="/tenant-config" element={<TenantConfig />} />
-              <Route path="/translation" element={<TranslationCenter />} />
-              <Route path="/safety" element={<SafetyPerformance />} />
-              <Route path="/fuel" element={<FuelModule />} />
-              <Route path="/telemetry" element={<TelemetryStream />} />
-              <Route path="/audit" element={<AuditLog />} />
-              <Route path="/invitations" element={<InvitationsScreen />} />
-              <Route path="/billing" element={<BillingScreen />} />
+
+              {/* Protected Operational & Financial Routes */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute screenId="STRATEGIC_DASHBOARD">
+                    <StrategicDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/variance"
+                element={
+                  <ProtectedRoute screenId="VARIANCE_DASHBOARD">
+                    <VarianceDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/vehicles"
+                element={
+                  <ProtectedRoute screenId="FLEET_HEALTH_GRID">
+                    <FleetHealthGrid />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/inventory"
+                element={
+                  <ProtectedRoute screenId="INVENTORY_DASHBOARD">
+                    <InventoryDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/work-orders"
+                element={
+                  <ProtectedRoute screenId="WORK_ORDER_QUEUE">
+                    <WorkOrderQueue />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/pm-schedules"
+                element={
+                  <ProtectedRoute screenId="PM_SCHEDULES">
+                    <PMSchedulesView />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/edi-suppliers"
+                element={
+                  <ProtectedRoute screenId="EDI_SUPPLIERS">
+                    <EdiSuppliersView />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/conflicts"
+                element={
+                  <ProtectedRoute screenId="CONFLICT_ALERTS">
+                    <ConflictAlerts />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/cae"
+                element={
+                  <ProtectedRoute screenId="CAE_BUDGET_PRIORITIZATION">
+                    <CaeBudgetPrioritization />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/incidents"
+                element={
+                  <ProtectedRoute screenId="INCIDENT_REPORTS">
+                    <IncidentReports />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/mechanic"
+                element={
+                  <ProtectedRoute screenId="MECHANIC_MOBILE_QUEUE">
+                    <MechanicMobileQueue />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/driver"
+                element={
+                  <ProtectedRoute screenId="DRIVER_MOBILE_VIEW">
+                    <DriverMobileView />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tenant-config"
+                element={
+                  <ProtectedRoute screenId="TENANT_CONFIG">
+                    <TenantConfig />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/translation"
+                element={
+                  <ProtectedRoute screenId="TRANSLATION_CENTER">
+                    <TranslationCenter />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/safety"
+                element={
+                  <ProtectedRoute screenId="SAFETY_PERFORMANCE">
+                    <SafetyPerformance />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/fuel"
+                element={
+                  <ProtectedRoute screenId="FUEL_LOGS">
+                    <FuelModule />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/telemetry"
+                element={
+                  <ProtectedRoute screenId="TELEMETRY_STREAM">
+                    <TelemetryStream />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/audit"
+                element={
+                  <ProtectedRoute screenId="AUDIT_LOG">
+                    <AuditLog />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/invitations"
+                element={
+                  <ProtectedRoute screenId="INVITATIONS">
+                    <InvitationsScreen />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/billing"
+                element={
+                  <ProtectedRoute screenId="BILLING">
+                    <BillingScreen />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Forbidden 403 Route */}
               <Route path="/forbidden" element={<ForbiddenScreen />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
+
+              {/* Smart Fallback Wildcard Route */}
+              <Route path="*" element={<SmartRouteFallback />} />
             </Routes>
           </Suspense>
         </main>
       </div>
 
-      {selectedVehicleId && (
-        <VehicleDetailModal
-          vehicleId={selectedVehicleId}
-          onClose={() => setSelectedVehicleId(null)}
-        />
-      )}
+      <VehicleDetailModalContainer />
     </div>
   );
 };
