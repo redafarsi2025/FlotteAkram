@@ -1,5 +1,5 @@
 import React from 'react';
-import { useFleet } from '../../context/FleetContext';
+import { useAuth } from '../../context/AuthContext';
 import { useLocalization } from '../../context/LocalizationContext';
 import { ROLES_CONFIG } from '../../data/seedData';
 import { Role } from '../../types';
@@ -20,7 +20,7 @@ interface RoleSelectorModalProps {
 }
 
 export const RoleSelectorModal: React.FC<RoleSelectorModalProps> = ({ onClose }) => {
-  const { currentRole, changeRole, setIsRoleSelectorOpen } = useFleet();
+  const { currentRole, changeRole, setIsRoleSelectorOpen } = useAuth();
   const { t } = useLocalization();
 
   const getRoleIcon = (roleId: Role) => {

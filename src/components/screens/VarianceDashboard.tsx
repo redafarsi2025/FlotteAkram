@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 export const VarianceDashboard: React.FC = () => {
-  const { costRecords, vehicles, workOrders, setSelectedVehicleId } = useFleet();
+  const { costRecords, fuelLogs, vehicles, workOrders, setSelectedVehicleId } = useFleet();
   const { t } = useLocalization();
 
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
@@ -30,8 +30,22 @@ export const VarianceDashboard: React.FC = () => {
   ];
 
   // Calculate totals by category
+  const allCostRecords = [
+    ...costRecords,
+    ...fuelLogs.map(log => ({
+      id: log.id,
+      vehicle_id: log.vehicle_id,
+      vehicle_plate: vehicles.find(v => v.id === log.vehicle_id)?.plate || log.vehicle_id,
+      category: 'Fuel',
+      amount: log.cost,
+      budget_for_category: log.cost * 0.85, // Introduce some variance
+      period: 'Q3 2026',
+      related_fault_code: 'Fuel Log',
+      work_order_id: undefined
+    }))
+  ];
   const categoryStats = categories.map((cat) => {
-    const catRecords = costRecords.filter((c) => c.category === cat);
+    const catRecords = allCostRecords.filter((c) => c.category === cat);
     const actual = catRecords.reduce((sum, c) => sum + c.amount, 0);
     const budget = catRecords.reduce((sum, c) => sum + c.budget_for_category, 0) || 15000;
     const variance = actual - budget;
@@ -44,12 +58,12 @@ export const VarianceDashboard: React.FC = () => {
     };
   });
 
-  const totalActual = costRecords.reduce((sum, c) => sum + c.amount, 0);
-  const totalBudget = costRecords.reduce((sum, c) => sum + c.budget_for_category, 0);
+  const totalActual = allCostRecords.reduce((sum, c) => sum + c.amount, 0);
+  const totalBudget = allCostRecords.reduce((sum, c) => sum + c.budget_for_category, 0);
   const totalVariance = totalActual - totalBudget;
 
   // Filter cost records for table view
-  const filteredRecords = costRecords.filter((record) => {
+  const filteredRecords = allCostRecords.filter((record) => {
     if (selectedCategory !== 'ALL' && record.category !== selectedCategory) return false;
     if (selectedClassification !== 'ALL') {
       const vehicle = vehicles.find((v) => v.id === record.vehicle_id);

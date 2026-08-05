@@ -1,5 +1,6 @@
 import React from 'react';
 import { useFleet } from '../../context/FleetContext';
+import { useAuth } from '../../context/AuthContext';
 import { useLocalization } from '../../context/LocalizationContext';
 import { RBAC_MATRIX, ROLES_CONFIG } from '../../data/seedData';
 import { ScreenId, PermissionLevel } from '../../types';
@@ -23,10 +24,13 @@ import {
   Radio,
   Mail,
   CreditCard,
+  Calendar,
+  ShoppingCart,
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
-  const { currentRole, currentScreen, changeScreen, alerts } = useFleet();
+  const { alerts } = useFleet();
+  const { currentRole, currentScreen, changeScreen } = useAuth();
   const { t } = useLocalization();
 
   const activeRoleInfo = ROLES_CONFIG.find((r) => r.id === currentRole);
@@ -67,6 +71,18 @@ export const Sidebar: React.FC = () => {
       label: t('nav.work_order_queue', {}, 'Work Order Queue'),
       icon: Wrench,
       description: t('nav.work_order_desc', {}, 'Create & approve maintenance interventions'),
+    },
+    {
+      id: 'PM_SCHEDULES',
+      label: 'PM Schedules (Phase 3)',
+      icon: Calendar,
+      description: 'Maintenance préventive par km, heures & jours',
+    },
+    {
+      id: 'EDI_SUPPLIERS',
+      label: 'EDI & Grossistes (Phase 3)',
+      icon: ShoppingCart,
+      description: 'Approvisionnement auto EDI & catalogues Bosch/Valeo',
     },
     {
       id: 'CONFLICT_ALERTS',

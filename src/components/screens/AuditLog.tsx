@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useFleet } from '../../context/FleetContext';
+import { useAuth } from '../../context/AuthContext';
 import { useLocalization } from '../../context/LocalizationContext';
 import { getAuditTrail } from '../../services/auditService';
 import { AuditLogEntry } from '../../types';
@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 
 export const AuditLog: React.FC = () => {
-  const { currentRole } = useFleet();
+  const { currentRole } = useAuth();
   const { t } = useLocalization();
 
   const isAuthorized = currentRole === 'DIRECTOR' || currentRole === 'FLEET_MANAGER';
@@ -96,6 +96,10 @@ export const AuditLog: React.FC = () => {
         return '🚨';
       case 'cae_budget':
         return '💰';
+      case 'fuel_log':
+        return '⛽';
+      case 'incident':
+        return '⚠️';
       default:
         return '📋';
     }
@@ -142,6 +146,8 @@ export const AuditLog: React.FC = () => {
             <option value="work_order">Work Orders (Lifecycle)</option>
             <option value="alert">Alerts (Rule Overrides)</option>
             <option value="cae_budget">CAE Budget Approvals</option>
+            <option value="fuel_log">Fuel Logs & Anomalies</option>
+            <option value="incident">Driver Incidents</option>
           </select>
         </div>
 

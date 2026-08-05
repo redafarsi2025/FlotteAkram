@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useFleet } from '../../context/FleetContext';
+import { useAuth } from '../../context/AuthContext';
 import { useLocalization } from '../../context/LocalizationContext';
 import { ROLES_CONFIG } from '../../data/seedData';
 import { Role } from '../../types';
@@ -32,7 +33,8 @@ import { AuthModal } from './AuthModal';
 import { LanguageSelector } from '../localization/LanguageSelector';
 
 export const TopBar: React.FC = () => {
-  const { currentRole, changeRole, alerts, resetSeedData, isRoleSelectorOpen, setIsRoleSelectorOpen, currentUser, syncStatus } = useFleet();
+  const { alerts, resetSeedData } = useFleet();
+  const { currentRole, changeRole, isRoleSelectorOpen, setIsRoleSelectorOpen, currentUser, syncStatus } = useAuth();
   const { t } = useLocalization();
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [showGoldenPathModal, setShowGoldenPathModal] = useState(false);

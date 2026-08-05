@@ -1,8 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-import { screenToRouteMap } from '../routes/routeMap';
 import {
   fetchVehicles,
   fetchInventory,
@@ -16,8 +13,6 @@ import {
   syncCloseWorkOrderAtomic,
 } from '../services/fleetData';
 import {
-  Role,
-  ScreenId,
   Vehicle,
   InventoryItem,
   WorkOrder,
@@ -26,14 +21,12 @@ import {
   FleetAlert,
   CAEItem,
   VehicleClassification,
-  TenantConfig,
   FuelLog,
-  UserProfile,
-  Subscription,
-  DEFAULT_ROLE_SCREENS,
+  ActiveFaultCode,
+  PMSchedule,
+  EdiSupplierPurchaseOrder,
 } from '../types';
-import { fuelService, INITIAL_SEED_FUEL_LOGS } from '../services/fuelService';
-import { recordAudit } from '../services/auditService';
+import { fuelService } from '../services/fuelService';
 import {
   INITIAL_VEHICLES,
   INITIAL_INVENTORY,
@@ -41,14 +34,14 @@ import {
   INITIAL_INCIDENTS,
   INITIAL_COST_RECORDS,
   INITIAL_ALERTS,
-  INITIAL_TENANT_CONFIGS,
-  RBAC_MATRIX,
-  ROLES_CONFIG,
+  INITIAL_PM_SCHEDULES,
+  INITIAL_EDI_ORDERS,
 } from '../data/seedData';
+import { useAuth } from './AuthContext';
+import { useTenant } from './TenantContext';
+import { recordAudit } from '../services/auditService';
 
 interface FleetContextType {
-  currentRole: Role;
-  currentScreen: ScreenId;
   vehicles: Vehicle[];
   inventory: InventoryItem[];
   workOrders: WorkOrder[];
@@ -56,35 +49,19 @@ interface FleetContextType {
   costRecords: CostRecord[];
   alerts: FleetAlert[];
   fuelLogs: FuelLog[];
+  pmSchedules: PMSchedule[];
+  ediOrders: EdiSupplierPurchaseOrder[];
   caeAvailableBudget: number;
   caeDelayMultipliers: Record<VehicleClassification, number>;
   selectedVehicleId: string | null;
-  isRoleSelectorOpen: boolean;
   goldenPathAStatus: { active: boolean; currentStep: number };
   goldenPathBStatus: { active: boolean; currentStep: number };
-  currentUser: User | null;
-  userProfile: UserProfile | null;
-  subscription: Subscription | null;
-  syncStatus: 'online' | 'offline' | 'syncing' | 'error';
-  refreshUserSession: () => Promise<void>;
-
-  // Tenant Configuration State & Actions
-  tenantConfigs: TenantConfig[];
-  activeTenantId: string;
-  activeTenant: TenantConfig;
-  updateTenantConfig: (id: string, updated: Partial<TenantConfig>) => void;
-  setActiveTenantId: (id: string) => void;
-  addTenantConfig: (newTenant: Omit<TenantConfig, 'id' | 'lastUpdated'>) => string;
-
-  // Actions
-  changeRole: (role: Role, preferredScreen?: ScreenId) => void;
-  changeScreen: (screen: ScreenId, shouldNavigate?: boolean) => void;
   setSelectedVehicleId: (id: string | null) => void;
-  setIsRoleSelectorOpen: (open: boolean) => void;
   setCaeAvailableBudget: (amount: number) => void;
   updateCaeDelayMultiplier: (classification: VehicleClassification, mult: number) => void;
-  
-  // Rule triggers & updates
+  addEdiPurchaseOrder: (poInput: Omit<EdiSupplierPurchaseOrder, 'id' | 'created_at'>) => void;
+  transmitEdiOrder: (poId: string) => void;
+  addPMSchedule: (schedule: Omit<PMSchedule, 'id'>) => void;
   logOBDFault: (
     vehicleId: string,
     fault: {
@@ -123,12 +100,8 @@ interface FleetContextType {
     logged_at?: string;
   }) => Promise<FuelLog>;
   resetSeedData: () => void;
-  
-  // Golden path demo handlers
   triggerGoldenPathAStep: (step: number) => void;
   triggerGoldenPathBStep: (step: number) => void;
-
-  // Computed data
   caeItems: CAEItem[];
   projectedShortfallParts: {
     part: InventoryItem;
@@ -142,57 +115,8 @@ interface FleetContextType {
 const FleetContext = createContext<FleetContextType | undefined>(undefined);
 
 export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const navigate = useNavigate();
-  const [currentRole, setCurrentRole] = useState<Role>('DIRECTOR');
-  const [currentScreen, setCurrentScreen] = useState<ScreenId>('LANDING_PAGE');
-  const [isRoleSelectorOpen, setIsRoleSelectorOpen] = useState<boolean>(false); // Start false so Landing Page shows clean first
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
-  const [syncStatus, setSyncStatus] = useState<'online' | 'offline' | 'syncing' | 'error'>('online');
-
-  const refreshUserSession = useCallback(async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setCurrentUser(session.user);
-        
-        // Fetch User Profile from public.users table
-        const { data: profile } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-
-        if (profile) {
-          setUserProfile(profile as UserProfile);
-          setCurrentRole(profile.role as Role);
-          if (profile.tenant_id) {
-            setActiveTenantIdState(profile.tenant_id);
-          }
-
-          // Fetch Company Subscription
-          if (profile.company_id) {
-            const { data: sub } = await supabase
-              .from('subscriptions')
-              .select('*')
-              .eq('company_id', profile.company_id)
-              .single();
-            if (sub) {
-              setSubscription(sub as Subscription);
-            }
-          }
-        }
-      } else {
-        setCurrentUser(null);
-        setUserProfile(null);
-        setSubscription(null);
-      }
-    } catch (e) {
-      console.warn('Error refreshing user session:', e);
-    }
-  }, []);
+  const { currentRole, currentUser, changeRole, changeScreen, setSyncStatus } = useAuth();
+  const { activeTenantId } = useTenant();
 
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -201,8 +125,54 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [costRecords, setCostRecords] = useState<CostRecord[]>([]);
   const [alerts, setAlerts] = useState<FleetAlert[]>([]);
   const [fuelLogs, setFuelLogs] = useState<FuelLog[]>([]);
+  const [pmSchedules, setPmSchedules] = useState<PMSchedule[]>(INITIAL_PM_SCHEDULES);
+  const [ediOrders, setEdiOrders] = useState<EdiSupplierPurchaseOrder[]>(INITIAL_EDI_ORDERS);
 
-  // Load initial fuel logs from service on mount
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
+
+  const addEdiPurchaseOrder = useCallback((poInput: Omit<EdiSupplierPurchaseOrder, 'id' | 'created_at'>) => {
+    const newPo: EdiSupplierPurchaseOrder = {
+      ...poInput,
+      id: `EDI-PO-${Date.now()}`,
+      created_at: new Date().toLocaleString(),
+    };
+    setEdiOrders((prev) => [newPo, ...prev]);
+    recordAudit(
+      'inventory_item',
+      newPo.id,
+      'CREATE',
+      {},
+      { po_number: newPo.po_number, supplier: newPo.supplier_name, total: newPo.total_amount },
+      currentUser?.id || 'sys',
+      currentRole,
+      activeTenantId
+    );
+  }, [currentUser, currentRole, activeTenantId]);
+
+  const transmitEdiOrder = useCallback((poId: string) => {
+    setEdiOrders((prev) =>
+      prev.map((po) => {
+        if (po.id === poId) {
+          return {
+            ...po,
+            status: 'Transmitted EDI',
+            transmitted_at: new Date().toLocaleString(),
+            ack_payload: `EDIFACT_ACK_200: Order #${po.po_number} successfully accepted by ${po.supplier_name} EDI gateway.`,
+          };
+        }
+        return po;
+      })
+    );
+  }, []);
+
+  const addPMSchedule = useCallback((scheduleInput: Omit<PMSchedule, 'id'>) => {
+    const newSch: PMSchedule = {
+      ...scheduleInput,
+      id: `PM-SCH-${Date.now()}`,
+    };
+    setPmSchedules((prev) => [...prev, newSch]);
+  }, []);
+
   useEffect(() => {
     fuelService.getFuelLogs().then((logs) => {
       if (logs && logs.length > 0) {
@@ -211,7 +181,21 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }).catch(() => {
       setSyncStatus('error');
     });
+  }, [setSyncStatus]);
+
+  const addAlert = useCallback((alert: Omit<FleetAlert, 'id' | 'timestamp' | 'read' | 'tenant_id'>) => {
+    const newAlert: FleetAlert = {
+      ...alert,
+      id: `ALRT-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      read: false,
+    };
+    setAlerts(prev => [newAlert, ...prev]);
   }, []);
+
+  const markAlertRead = (alertId: string) => {
+    setAlerts(prev => prev.map(a => a.id === alertId ? { ...a, read: true } : a));
+  };
 
   const addFuelLog = async (logInput: {
     vehicle_id: string;
@@ -220,13 +204,22 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     odometer_km: number;
     logged_at?: string;
   }) => {
+    recordAudit(
+      'fuel_log',
+      logInput.vehicle_id,
+      'CREATE',
+      {},
+      { liters: logInput.liters, cost: logInput.cost, odometer: logInput.odometer_km },
+      currentUser?.id || 'sys',
+      currentRole,
+      activeTenantId
+    );
     const newLog = await fuelService.addFuelLog({
       ...logInput,
       tenant_id: activeTenantId,
     });
     setFuelLogs((prev) => [...prev, newLog]);
 
-    // Check if anomalous and add R7 / Fuel alert if true
     if (newLog.anomaly_flag) {
       const vehicle = vehicles.find((v) => v.id === newLog.vehicle_id);
       addAlert({
@@ -238,7 +231,6 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       });
     }
 
-    // Also append to cost records for R7 financial auditing
     const vehicle = vehicles.find((v) => v.id === newLog.vehicle_id);
     const costRecord: CostRecord = {
       id: `CR-FUEL-${Date.now()}`,
@@ -246,335 +238,131 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       vehicle_plate: vehicle?.plate || 'UNKNOWN',
       category: 'Fuel',
       amount: newLog.cost,
-      budget_for_category: Math.round(newLog.cost * 0.9), // baseline estimate
+      budget_for_category: Math.round(newLog.cost * 0.9),
       period: 'Q3 2026',
     };
-    setCostRecords((prev) => [costRecord, ...prev]);
-
+    setCostRecords((prev) => [...prev, costRecord]);
     return newLog;
   };
 
-  const [caeAvailableBudget, setCaeAvailableBudget] = useState<number>(5500);
-  const [caeDelayMultipliers, setCaeDelayMultipliers] = useState<Record<VehicleClassification, number>>({
-    Keystone: 2.2,
-    Standard: 1.4,
-  });
-
-  // Tenant Configuration State with LocalStorage Persistence
-  const [tenantConfigs, setTenantConfigs] = useState<TenantConfig[]>(() => {
+  const loadData = useCallback(async () => {
+    if (!currentUser) return;
+    setSyncStatus('syncing');
     try {
-      const stored = localStorage.getItem('nexttransit_tenant_configs');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {
-      console.warn('Failed to load tenant configs from localStorage', e);
-    }
-    return INITIAL_TENANT_CONFIGS;
-  });
-
-  const [activeTenantId, setActiveTenantIdState] = useState<string>(() => {
-    try {
-      const stored = localStorage.getItem('nexttransit_active_tenant_id');
-      if (stored) return stored;
-    } catch (e) {
-      console.warn('Failed to load active tenant ID', e);
-    }
-    return 'c0a80101-0000-0000-0000-000000000001';
-  });
-
-  // 1. Listen to Supabase Auth state changes (JWT state) to load profile & subscription
-  useEffect(() => {
-    refreshUserSession();
-
-    const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange((_event, session) => {
-      refreshUserSession();
-    });
-
-    return () => {
-      authSub.unsubscribe();
-    };
-  }, [refreshUserSession]);
-
-  // 2. Fetch multi-tenant isolated fleet data from Supabase whenever activeTenantId or session state shifts
-  const loadFleetData = async (active: boolean = true) => {
-    if (active) setSyncStatus('syncing');
-    try {
-      const [vList, iList, woList, incList, cList, aList] = await Promise.all([
-        fetchVehicles(true),
-        fetchInventory(true),
-        fetchWorkOrders(true),
-        fetchIncidents(true),
-        fetchCostRecords(true),
-        fetchAlerts(true),
+      const [dbVehicles, dbInventory, dbWO, dbIncidents, dbCosts, dbAlerts] = await Promise.all([
+        fetchVehicles(),
+        fetchInventory(),
+        fetchWorkOrders(),
+        fetchIncidents(),
+        fetchCostRecords(),
+        fetchAlerts()
       ]);
-      if (active) {
-        setVehicles(vList);
-        setInventory(iList);
-        setWorkOrders(woList);
-        setIncidents(incList);
-        setCostRecords(cList);
-        setAlerts(aList);
-        setSyncStatus('online');
-      }
-    } catch (err) {
-      console.warn('Failed to load isolated fleet data from Supabase:', err);
-      if (active) setSyncStatus('error');
+      setVehicles(dbVehicles.length ? dbVehicles : INITIAL_VEHICLES);
+      setInventory(dbInventory.length ? dbInventory : INITIAL_INVENTORY);
+      setWorkOrders(dbWO.length ? dbWO : INITIAL_WORK_ORDERS);
+      setIncidents(dbIncidents.length ? dbIncidents : INITIAL_INCIDENTS);
+      setCostRecords(dbCosts.length ? dbCosts : INITIAL_COST_RECORDS);
+      setAlerts(dbAlerts.length ? dbAlerts : INITIAL_ALERTS);
+      setSyncStatus('online');
+    } catch (e) {
+      console.warn('DB load failed, using seed data fallback.', e);
+      setVehicles(INITIAL_VEHICLES);
+      setInventory(INITIAL_INVENTORY);
+      setWorkOrders(INITIAL_WORK_ORDERS);
+      setIncidents(INITIAL_INCIDENTS);
+      setCostRecords(INITIAL_COST_RECORDS);
+      setAlerts(INITIAL_ALERTS);
+      setSyncStatus('offline');
     }
-  };
+  }, [currentUser, setSyncStatus]);
 
   useEffect(() => {
-    let active = true;
-    loadFleetData(active);
+    loadData();
+  }, [loadData]);
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const channels = [
+      supabase.channel('public:fleet_alerts').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'fleet_alerts' }, payload => {
+        setAlerts(prev => [payload.new as FleetAlert, ...prev]);
+      }).subscribe(),
+      supabase.channel('public:vehicles').on('postgres_changes', { event: '*', schema: 'public', table: 'vehicles' }, () => {
+        fetchVehicles().then(setVehicles);
+      }).subscribe(),
+      supabase.channel('public:work_orders').on('postgres_changes', { event: '*', schema: 'public', table: 'work_orders' }, () => {
+        fetchWorkOrders().then(setWorkOrders);
+      }).subscribe(),
+      supabase.channel('public:inventory_items').on('postgres_changes', { event: '*', schema: 'public', table: 'inventory_items' }, () => {
+        fetchInventory().then(setInventory);
+      }).subscribe(),
+    ];
+
     return () => {
-      active = false;
+      channels.forEach(ch => supabase.removeChannel(ch));
     };
-  }, [activeTenantId]);
+  }, [currentUser]);
 
-  // Sync tenant configs to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem('nexttransit_tenant_configs', JSON.stringify(tenantConfigs));
-    } catch (e) {
-      console.warn('Failed to persist tenant configs', e);
-    }
-  }, [tenantConfigs]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('nexttransit_active_tenant_id', activeTenantId);
-    } catch (e) {
-      console.warn('Failed to persist active tenant ID', e);
-    }
-  }, [activeTenantId]);
-
-  // Derived Active Tenant
-  const activeTenant = useMemo(() => {
-    const found = tenantConfigs.find((t) => t.id === activeTenantId) || tenantConfigs[0] || INITIAL_TENANT_CONFIGS[0];
+  const [caeAvailableBudget, setCaeAvailableBudget] = useState(12000);
+  const [caeDelayMultipliers, setCaeDelayMultipliers] = useState<Record<VehicleClassification, number>>({
+    'Keystone': 2.2,
+    'Standard': 1.4,
     
-    // If autoSyncMoneyUsed is enabled, derive moneyUsed from costRecords sum
-    if (found.autoSyncMoneyUsed && costRecords.length > 0) {
-      const totalCost = costRecords.reduce((sum, c) => sum + c.amount, 0);
-      return {
-        ...found,
-        moneyUsed: totalCost,
-      };
-    }
-    return found;
-  }, [tenantConfigs, activeTenantId, costRecords]);
-
-  const updateTenantConfig = useCallback((id: string, updated: Partial<TenantConfig>) => {
-    setTenantConfigs((prev) =>
-      prev.map((t) => {
-        if (t.id === id) {
-          const merged = {
-            ...t,
-            ...updated,
-            lastUpdated: new Date().toISOString().split('T')[0],
-          };
-          // Asynchronously attempt to sync with Supabase tenant_configs table
-          supabase
-            .from('tenant_configs')
-            .upsert({
-              id: merged.id,
-              society_name: merged.societyName,
-              currency: merged.currency,
-              currency_symbol: merged.currencySymbol,
-              default_language: merged.defaultLanguage,
-              timezone: merged.timezone,
-              notifications_enabled: merged.notificationsEnabled,
-              custom_domain: merged.customDomain,
-              allocated_budget: merged.allocatedBudget,
-              money_used: merged.moneyUsed,
-              fiscal_year: merged.fiscalYear,
-              operating_region: merged.operatingRegion,
-              tax_registration_id: merged.taxRegistrationId,
-              cost_center_code: merged.costCenterCode,
-              default_labor_rate: merged.defaultLaborRate,
-              emergency_approval_threshold: merged.emergencyApprovalThreshold,
-              contact_email: merged.contactEmail,
-              contact_phone: merged.contactPhone,
-              billing_address: merged.billingAddress,
-              auto_sync_money_used: merged.autoSyncMoneyUsed,
-              primary_color: merged.primaryColor,
-              accent_color: merged.accentColor,
-              brand_tagline: merged.brandTagline,
-              logo_url: merged.logoUrl,
-              updated_at: new Date().toISOString(),
-            })
-            .then(
-              ({ error }) => {
-                if (error) {
-                  console.warn('Supabase tenant_configs upsert note:', error.message);
-                }
-              },
-              (err) => {
-                console.warn('Supabase tenant_configs upsert network note:', err);
-              }
-            );
-          return merged;
-        }
-        return t;
-      })
-    );
-  }, []);
-
-  const setActiveTenantId = (id: string) => {
-    if (tenantConfigs.some((t) => t.id === id)) {
-      setActiveTenantIdState(id);
-    }
-  };
-
-  const addTenantConfig = (newTenant: Omit<TenantConfig, 'id' | 'lastUpdated'>): string => {
-    const newId = `TNT-${Date.now().toString().slice(-6)}`;
-    const fullTenant: TenantConfig = {
-      ...newTenant,
-      id: newId,
-      lastUpdated: new Date().toISOString().split('T')[0],
-    };
-    setTenantConfigs((prev) => [...prev, fullTenant]);
-    setActiveTenantIdState(newId);
-
-    // Sync to Supabase
-    supabase
-      .from('tenant_configs')
-      .upsert({
-        id: fullTenant.id,
-        society_name: fullTenant.societyName,
-        currency: fullTenant.currency,
-        currency_symbol: fullTenant.currencySymbol,
-        default_language: fullTenant.defaultLanguage,
-        timezone: fullTenant.timezone,
-        notifications_enabled: fullTenant.notificationsEnabled,
-        custom_domain: fullTenant.customDomain,
-        allocated_budget: fullTenant.allocatedBudget,
-        money_used: fullTenant.moneyUsed,
-        fiscal_year: fullTenant.fiscalYear,
-        operating_region: fullTenant.operatingRegion,
-        tax_registration_id: fullTenant.taxRegistrationId,
-        cost_center_code: fullTenant.costCenterCode,
-        default_labor_rate: fullTenant.defaultLaborRate,
-        emergency_approval_threshold: fullTenant.emergencyApprovalThreshold,
-        contact_email: fullTenant.contactEmail,
-        contact_phone: fullTenant.contactPhone,
-        billing_address: fullTenant.billingAddress,
-        auto_sync_money_used: fullTenant.autoSyncMoneyUsed,
-        primary_color: fullTenant.primaryColor,
-        accent_color: fullTenant.accentColor,
-        brand_tagline: fullTenant.brandTagline,
-        logo_url: fullTenant.logoUrl,
-        updated_at: new Date().toISOString(),
-      })
-      .then(
-        ({ error }) => {
-          if (error) {
-            console.warn('Supabase tenant_configs insert note:', error.message);
-          }
-        },
-        (err) => {
-          console.warn('Supabase tenant_configs insert network note:', err);
-        }
-      );
-
-    return newId;
-  };
+  });
 
   const [goldenPathAStatus, setGoldenPathAStatus] = useState({ active: false, currentStep: 0 });
   const [goldenPathBStatus, setGoldenPathBStatus] = useState({ active: false, currentStep: 0 });
 
-  const changeScreen = useCallback((screen: ScreenId, shouldNavigate: boolean = true) => {
-    let targetScreen = screen;
-
-    // RBAC Middleware Check
-    if (targetScreen !== 'LANDING_PAGE' && targetScreen !== 'FORBIDDEN_403') {
-      const perm = RBAC_MATRIX[targetScreen]?.[currentRole];
-      if (!perm || perm === 'none') {
-        targetScreen = 'FORBIDDEN_403';
-      }
+  const resolveConflict = (vehicleId: string, action: 'assign_alternate' | 'expedite' | 'defer', notes: string) => {
+    const vehicle = vehicles.find((v) => v.id === vehicleId);
+    if (!vehicle) return;
+    
+    // Record audit log for alert / rule override decision
+    recordAudit(
+      'alert',
+      `R4-ALT-${vehicleId}`,
+      'OVERRIDE',
+      { vehicle_id: vehicleId, scheduled_use_days: vehicle.scheduled_use_days, status_reason: vehicle.status_reason },
+      { action, notes, resolved_by: currentUser?.id || 'usr-fm-01' },
+      currentUser?.id || 'usr-fm-01',
+      currentRole,
+      activeTenantId
+    );
+    
+    if (action === 'assign_alternate') {
+      setVehicles((prev) =>
+        prev.map((v) =>
+          v.id === vehicleId
+            ? {
+                ...v,
+                scheduled_use_days: 30,
+                status_reason: `${v.status_reason} — [Resolved by Fleet Manager: Reassigned Route to backup coach]`,
+              }
+            : v
+        )
+      );
+    } else if (action === 'expedite') {
+      setVehicles((prev) =>
+        prev.map((v) =>
+          v.id === vehicleId
+            ? {
+                ...v,
+                status_reason: `${v.status_reason} — [Resolved by FM: Expediting repair via overtime]`,
+              }
+            : v
+        )
+      );
     }
 
-    // Subscription Status Guard
-    if (subscription && (subscription.status === 'past_due' || subscription.status === 'cancelled')) {
-      if (currentRole !== 'SUPER_ADMIN' && targetScreen !== 'BILLING' && targetScreen !== 'LANDING_PAGE') {
-        targetScreen = 'BILLING';
-      }
-    }
-
-    setCurrentScreen(targetScreen);
-    if (shouldNavigate) {
-      const targetRoute = screenToRouteMap[targetScreen];
-      if (targetRoute && window.location.pathname !== targetRoute) {
-        navigate(targetRoute);
-      }
-    }
-  }, [currentRole, subscription, navigate]);
-
-  // Role changes are strictly locked to database profile when authenticated
-  const changeRole = (newRole: Role, preferredScreen?: ScreenId) => {
-    if (currentUser && userProfile) {
-      console.warn('[RBAC] Role is strictly bound to authenticated Supabase user profile. Client-side role override is disabled.');
-      return;
-    }
-
-    setCurrentRole(newRole);
-    setIsRoleSelectorOpen(false);
-
-    if (preferredScreen) {
-      const prefPerm = RBAC_MATRIX[preferredScreen]?.[newRole];
-      if (prefPerm && prefPerm !== 'none') {
-        changeScreen(preferredScreen);
-        return;
-      }
-    }
-
-    const currentPerm = RBAC_MATRIX[currentScreen]?.[newRole];
-    const isCurrentAllowed = currentPerm && currentPerm !== 'none' && currentScreen !== 'LANDING_PAGE';
-
-    if (isCurrentAllowed) {
-      return;
-    }
-
-    const defaultScreen = DEFAULT_ROLE_SCREENS[newRole] || 'STRATEGIC_DASHBOARD';
-    changeScreen(defaultScreen);
+    addAlert({
+      rule_id: 'R2',
+      title: `Schedule Conflict Resolved`,
+      description: `Conflict on vehicle ${vehicleId} resolved via: ${action}. Notes: ${notes}`,
+      severity: 'info',
+      vehicle_id: vehicleId,
+    });
   };
 
-  const updateCaeDelayMultiplier = (classification: VehicleClassification, mult: number) => {
-    setCaeDelayMultipliers((prev) => ({ ...prev, [classification]: mult }));
-  };
-
-  // Reset to initial clean seed data
-  const resetSeedData = () => {
-    setVehicles(INITIAL_VEHICLES);
-    setInventory(INITIAL_INVENTORY);
-    setWorkOrders(INITIAL_WORK_ORDERS);
-    setIncidents(INITIAL_INCIDENTS);
-    setCostRecords(INITIAL_COST_RECORDS);
-    setAlerts(INITIAL_ALERTS);
-    setTenantConfigs(INITIAL_TENANT_CONFIGS);
-    setActiveTenantIdState('TNT-NEXTR-001');
-    try {
-      localStorage.removeItem('nexttransit_tenant_configs');
-      localStorage.removeItem('nexttransit_active_tenant_id');
-    } catch (e) {}
-    setCaeAvailableBudget(5500);
-    setCaeDelayMultipliers({ Keystone: 2.2, Standard: 1.4 });
-    setGoldenPathAStatus({ active: false, currentStep: 0 });
-    setGoldenPathBStatus({ active: false, currentStep: 0 });
-  };
-
-  // Helper to add new alerts
-  const addAlert = (newAlert: Omit<FleetAlert, 'id' | 'timestamp' | 'read'>) => {
-    const alertObj: FleetAlert = {
-      ...newAlert,
-      id: `ALT-${Date.now()}`,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      read: false,
-    };
-    setAlerts((prev) => [alertObj, ...prev]);
-  };
-
-  // Rule R1, R3, R4 Implementation: Log an OBD Fault
   const logOBDFault = async (
     vehicleId: string,
     fault: {
@@ -585,151 +373,57 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       required_intervention: string;
     }
   ) => {
-    // Check warranty risk for R1 extension
-    let warrantyRiskWarning = '';
-    if (fault.severity === 'Critical') {
-      const vehicle = vehicles.find((v) => v.id === vehicleId);
-      if (vehicle) {
-        const { warrantyService } = await import('../services/warrantyService');
-        const isRisk = await warrantyService.checkWarrantyRisk(
+    const vehicleBefore = vehicles.find((v) => v.id === vehicleId);
+    try {
+      const activeFault: ActiveFaultCode = {
+        ...fault,
+        logged_date: new Date().toISOString()
+      };
+      await syncLogOBDFaultToSupabase(vehicleId, fault);
+      const newStatus = fault.severity === 'Critical' ? 'Critical' : fault.severity === 'Warning' ? 'Attention' : (vehicleBefore?.status || 'Unknown');
+      
+      if (vehicleBefore) {
+        recordAudit(
+          'vehicle',
           vehicleId,
-          fault.required_intervention,
-          vehicle.mileage
+          'STATUS_CHANGE',
+          { status: vehicleBefore.status, active_faults: vehicleBefore.active_fault_codes },
+          { status: newStatus, added_fault: fault },
+          currentUser?.id || 'sys',
+          currentRole,
+          activeTenantId
         );
-        if (isRisk) {
-          warrantyRiskWarning = ' ⚠️ WARRANTY RISK: Proposed action may void manufacturer warranty.';
-        }
       }
-    }
-
-    // Optimistic / Local sync
-    setVehicles((prevVehicles) =>
-      prevVehicles.map((v) => {
-        if (v.id !== vehicleId) return v;
-
-        const updatedFaults = [
-          ...v.active_fault_codes,
-          {
-            ...fault,
-            logged_date: new Date().toISOString().split('T')[0],
-          },
-        ];
-
-        const newStatus =
-          fault.severity === 'Critical' ? 'Critical' : fault.severity === 'Warning' ? 'Attention' : v.status;
-        const newReason = `Active ${fault.severity.toLowerCase()} fault code ${fault.code} (${fault.name}), logged just now`;
-
-        // Check R3 Parts Linkage
-        let partInfo = 'No specific part required.';
-        let partObj: InventoryItem | undefined;
-        if (fault.required_part_id) {
-          partObj = inventory.find((item) => item.id === fault.required_part_id);
-          if (partObj) {
-            const isLow = partObj.quantity <= partObj.reorder_threshold;
-            partInfo = `Linked Part [${partObj.name}]: Stock ${partObj.quantity} units ${
-              isLow ? `(⚠️ LOW STOCK - threshold ${partObj.reorder_threshold})` : ''
-            }`;
+      
+      setVehicles((prev) =>
+        prev.map((v) => {
+          if (v.id === vehicleId) {
+            const newStatus = fault.severity === 'Critical' ? 'Critical' : fault.severity === 'Warning' ? 'Attention' : v.status;
+            return {
+              ...v,
+              status: newStatus,
+              active_fault_codes: [activeFault, ...(v.active_fault_codes || [])],
+            };
           }
-        }
+          return v;
+        })
+      );
 
-        // R1 + R3 Alert
+      if (fault.severity === 'Critical') {
         addAlert({
-          rule_id: 'R3',
-          title: `R1+R3 Alert: ${fault.severity} Fault Logged on ${v.plate}`,
-          description: `Vehicle ${v.name} reported fault ${fault.code}. ${partInfo}${warrantyRiskWarning}`,
-          severity: fault.severity === 'Critical' ? 'critical' : 'warning',
-          vehicle_id: v.id,
+          rule_id: 'R1',
+          title: `R1 Emergency Stop: Critical Fault on ${vehicleId}`,
+          description: `Fault ${fault.code} logged. Vehicle status set to Critical. Dispatch immediate maintenance.`,
+          severity: 'critical',
+          vehicle_id: vehicleId,
           part_id: fault.required_part_id,
         });
-
-        // R4 Conflict Detection check
-        if ((newStatus === 'Critical' || newStatus === 'Attention') && v.scheduled_use_days <= 7) {
-          addAlert({
-            rule_id: 'R4',
-            title: `R4 Conflict Detection: ${v.plate} Scheduled in ${v.scheduled_use_days} Days`,
-            description: `Vehicle ${v.name} is ${newStatus.toUpperCase()} (${fault.code}) but scheduled for departure on ${v.scheduled_route || 'Route #100'}. Action required by Fleet Manager.`,
-            severity: 'critical',
-            vehicle_id: v.id,
-          });
-        }
-
-        return {
-          ...v,
-          status: newStatus,
-          status_reason: newReason,
-          active_fault_codes: updatedFaults,
-        };
-      })
-    );
-
-    // Record audit log entry for vehicle status change / fault logging
-    const targetVehicle = vehicles.find((v) => v.id === vehicleId);
-    if (targetVehicle) {
-      recordAudit(
-        'vehicle',
-        vehicleId,
-        'STATUS_CHANGE',
-        { status: targetVehicle.status, active_faults_count: targetVehicle.active_fault_codes.length },
-        { status: fault.severity === 'Critical' ? 'Critical' : fault.severity === 'Warning' ? 'Attention' : targetVehicle.status, fault_code: fault.code, severity: fault.severity },
-        currentUser?.id || 'usr-fm-01',
-        currentRole
-      );
+      }
+    } catch (e) {
+      console.error('Failed to log OBD fault to DB:', e);
     }
-
-    // Backend sync
-    syncLogOBDFaultToSupabase(vehicleId, fault);
   };
 
-  // Rule R6: Submit Driver Incident / Investigation Report
-  const submitDriverIncident = (
-    vehicleId: string,
-    category: Incident['category'],
-    description: string,
-    reportedBy: string = 'Mohamed Farsi (Driver)'
-  ) => {
-    const vehicle = vehicles.find((v) => v.id === vehicleId);
-    if (!vehicle) return;
-
-    // Check if matching fault exists
-    const hasMatchingFault = vehicle.active_fault_codes.some(
-      (f) =>
-        f.name.toLowerCase().includes(category.toLowerCase()) ||
-        description.toLowerCase().includes(f.name.toLowerCase())
-    );
-
-    const newIncident: Incident = {
-      id: `INC-2026-${Math.floor(100 + Math.random() * 900)}`,
-      vehicle_id: vehicleId,
-      vehicle_plate: vehicle.plate,
-      reported_by: reportedBy,
-      category,
-      description,
-      matched_to_fault: hasMatchingFault,
-      status: 'Investigation',
-      created_date: new Date().toLocaleString([], { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
-    };
-
-    setIncidents((prev) => [newIncident, ...prev]);
-
-    // R6 Alert: No matching fault -> Investigation alert for Technical Controller + Fleet Manager
-    if (!hasMatchingFault) {
-      addAlert({
-        rule_id: 'R6',
-        title: `R6 Investigation Required: ${vehicle.plate}`,
-        description: `Driver ${reportedBy} reported "${category}" issue ("${description.slice(
-          0,
-          60
-        )}...") with NO matching OBD fault code. Technical Controller / Mechanic check needed.`,
-        severity: 'warning',
-        vehicle_id: vehicleId,
-      });
-    }
-
-    // Backend sync
-    syncSubmitDriverIncidentToSupabase(newIncident);
-  };
-
-  // Create Work Order
   const createWorkOrder = async (order: {
     vehicle_id: string;
     type: WorkOrder['type'];
@@ -744,283 +438,191 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const vehicle = vehicles.find((v) => v.id === order.vehicle_id);
     if (!vehicle) return;
 
-    // Check Warranty Risk (Rule R1 Extension)
-    const { warrantyService } = await import('../services/warrantyService');
-    const isRisk = await warrantyService.checkWarrantyRisk(
-      order.vehicle_id, 
-      order.before_notes, 
-      vehicle.mileage
-    );
+    const total_cost = (order.labor_hours * order.hourly_rate) +
+      order.parts_used.reduce((sum, part) => sum + (part.quantity * part.unit_cost), 0);
 
-    const laborCost = order.labor_hours * order.hourly_rate;
-    const newWorkOrder: WorkOrder = {
-      id: `WO-${Math.floor(4100 + Math.random() * 900)}`,
+    const newWO: Omit<WorkOrder, 'id'> = {
       vehicle_id: order.vehicle_id,
       vehicle_plate: vehicle.plate,
       type: order.type,
       status: 'Open',
-      labor_cost: laborCost,
       parts_used: order.parts_used,
       labor_hours: order.labor_hours,
       hourly_rate: order.hourly_rate,
-      before_after_notes: {
-        before: order.before_notes,
-        after: 'Pending repair completion.',
-      },
-      created_date: new Date().toISOString().split('T')[0],
+      before_after_notes: { before: order.before_notes, after: '' },
       assigned_mechanic_id: order.assigned_mechanic_id,
       assigned_mechanic_name: order.assigned_mechanic_name,
       related_fault_code: order.related_fault_code,
-      warranty_risk: isRisk,
+      created_date: new Date().toISOString(),
+      labor_cost: order.labor_hours * order.hourly_rate
     };
 
-    setWorkOrders((prev) => [newWorkOrder, ...prev]);
+    try {
+      const insertedWO = await syncCreateWorkOrderToSupabase(newWO);
+      
+      recordAudit(
+        'work_order',
+        insertedWO?.id || 'WO-NEW',
+        'CREATE',
+        {},
+        { type: order.type, labor_hours: order.labor_hours, vehicle_id: order.vehicle_id },
+        currentUser?.id || 'sys',
+        currentRole,
+        activeTenantId
+      );
+      if (insertedWO) {
+        setWorkOrders(prev => [insertedWO, ...prev]);
+      }
 
-    addAlert({
-      rule_id: 'R1',
-      title: `Work Order Created: ${newWorkOrder.id}`,
-      description: `Technical Controller created Work Order for ${vehicle.plate} (${order.type}). Assigned to ${order.assigned_mechanic_name}.`,
-      severity: 'info',
-      vehicle_id: vehicle.id,
-    });
-
-    // Record audit log entry for work order creation
-    recordAudit(
-      'work_order',
-      newWorkOrder.id,
-      'CREATE',
-      {},
-      {
-        vehicle_id: newWorkOrder.vehicle_id,
-        type: newWorkOrder.type,
-        status: newWorkOrder.status,
-        assigned_mechanic: newWorkOrder.assigned_mechanic_name,
-        related_fault: newWorkOrder.related_fault_code,
-      },
-      currentUser?.id || 'usr-tc-01',
-      currentRole
-    );
-
-    // Backend sync
-    syncCreateWorkOrderToSupabase(newWorkOrder);
-  };
-
-  // Close Work Order -> Deducts Inventory, Updates Vehicle Status & Cost Records (Atomic RPC Orchestration)
-  const closeWorkOrder = async (orderId: string, afterNotes: string) => {
-    const targetOrder = workOrders.find((w) => w.id === orderId);
-    if (!targetOrder || targetOrder.status === 'Closed') return;
-
-    // 1. Optimistic Client State Update
-    setWorkOrders((prev) =>
-      prev.map((w) =>
-        w.id === orderId
-          ? {
-              ...w,
-              status: 'Closed',
-              closed_date: new Date().toISOString().split('T')[0],
-              before_after_notes: {
-                ...w.before_after_notes,
-                after: afterNotes || 'Work completed successfully and tested.',
-              },
-            }
-          : w
-      )
-    );
-
-    // 2. Consume inventory parts optimistically
-    if (targetOrder.parts_used.length > 0) {
-      setInventory((prevInv) =>
-        prevInv.map((item) => {
-          const used = targetOrder.parts_used.find((p) => p.part_id === item.id);
-          if (!used) return item;
-          const newQty = Math.max(0, item.quantity - used.quantity);
-
-          if (newQty <= item.reorder_threshold) {
+      setInventory(prev => prev.map(item => {
+        const used = order.parts_used.find(p => p.part_id === item.id);
+        if (used) {
+          const newQuantity = item.quantity - used.quantity;
+          if (newQuantity <= item.reorder_threshold) {
             addAlert({
               rule_id: 'R3',
               title: `R3 Inventory Alert: Low Stock for ${item.name}`,
-              description: `Stock for ${item.sku} dropped to ${newQty} unit(s) after Work Order ${orderId} (Reorder Threshold: ${item.reorder_threshold}).`,
+              description: `Stock dropped to ${newQuantity}. (Threshold: ${item.reorder_threshold}).`,
               severity: 'warning',
               part_id: item.id,
             });
           }
-          return { ...item, quantity: newQty };
-        })
-      );
-    }
+          return { ...item, quantity: newQuantity };
+        }
+        return item;
+      }));
 
-    // 3. Update Vehicle status to Healthy if fault was repaired
-    setVehicles((prevVehicles) =>
-      prevVehicles.map((v) => {
-        if (v.id !== targetOrder.vehicle_id) return v;
-
-        const remainingFaults = v.active_fault_codes.filter((f) => f.code !== targetOrder.related_fault_code);
-        const hasCritical = remainingFaults.some((f) => f.severity === 'Critical');
-        const hasWarning = remainingFaults.some((f) => f.severity === 'Warning');
-        const newStatus = hasCritical ? 'Critical' : hasWarning ? 'Attention' : 'Healthy';
-        const newReason =
-          newStatus === 'Healthy'
-            ? `All faults cleared via Work Order ${orderId} (${new Date().toLocaleDateString()})`
-            : `Remaining ${remainingFaults.length} active fault(s)`;
-
-        const partsCost = targetOrder.parts_used.reduce((sum, p) => sum + p.quantity * p.unit_cost, 0);
-
-        return {
-          ...v,
-          status: newStatus,
-          status_reason: newReason,
-          active_fault_codes: remainingFaults,
-          maintenance_history: [
-            {
-              id: `MH-${Date.now()}`,
-              date: new Date().toISOString().split('T')[0],
-              type: targetOrder.type === 'Corrective' ? 'Corrective' : 'Preventive',
-              summary: `Completed ${targetOrder.type}: ${targetOrder.id} - ${afterNotes}`,
-              work_order_id: targetOrder.id,
-              labor_cost: targetOrder.labor_cost,
-              parts_cost: partsCost,
-              total_cost: targetOrder.labor_cost + partsCost,
-            },
-            ...v.maintenance_history,
-          ],
-        };
-      })
-    );
-
-    // 4. Record new CostRecord for Variance tracking
-    const totalPartsCost = targetOrder.parts_used.reduce((sum, p) => sum + p.quantity * p.unit_cost, 0);
-    const newCostRecord: CostRecord = {
-      id: `CR-${Date.now()}`,
-      vehicle_id: targetOrder.vehicle_id,
-      vehicle_plate: targetOrder.vehicle_plate,
-      category: targetOrder.type === 'Corrective' ? 'Corrective Repair' : 'Preventive Maintenance',
-      amount: targetOrder.labor_cost + totalPartsCost,
-      budget_for_category: 15000,
-      period: 'Q3 2026',
-      work_order_id: targetOrder.id,
-      related_fault_code: targetOrder.related_fault_code,
-    };
-    setCostRecords((prev) => [newCostRecord, ...prev]);
-
-    addAlert({
-      rule_id: 'R1',
-      title: `Work Order Completed: ${orderId}`,
-      description: `Mechanic completed repair on ${targetOrder.vehicle_plate}. Vehicle health restored and inventory updated.`,
-      severity: 'info',
-      vehicle_id: targetOrder.vehicle_id,
-    });
-
-    // Record audit log entry for work order status change (Close)
-    recordAudit(
-      'work_order',
-      orderId,
-      'STATUS_CHANGE',
-      { status: targetOrder.status, before_notes: targetOrder.before_after_notes?.before },
-      { status: 'Closed', closed_date: new Date().toISOString().split('T')[0], after_notes: afterNotes },
-      currentUser?.id || 'usr-mech-01',
-      currentRole
-    );
-
-    // 5. Invoke Supabase atomic RPC to perform full safe state transition on Postgres
-    const ok = await syncCloseWorkOrderAtomic(orderId, afterNotes);
-    if (ok) {
-      // Reload everything to stay 100% in sync with the database schema / backend state
-      loadFleetData(true);
+      setVehicles(prev => prev.map(v => {
+        if (v.id === order.vehicle_id) {
+          if (v.scheduled_use_days !== undefined && v.scheduled_use_days <= 3) {
+            addAlert({
+              rule_id: 'R2',
+              title: `R2 Conflict: Vehicle scheduled in ${v.scheduled_use_days} days`,
+              description: `A new work order was opened for a vehicle scheduled for imminent deployment.`,
+              severity: 'warning',
+              vehicle_id: v.id,
+            });
+            return {
+              ...v,
+              status: 'Attention',
+              status_reason: 'Open WO conflicts with scheduled dispatch.',
+            };
+          }
+          return { ...v, status: 'Attention', status_reason: 'In Maintenance' };
+        }
+        return v;
+      }));
+    } catch (e) {
+      console.error('Failed to create Work Order:', e);
     }
   };
 
-  // R4 Conflict Resolution by Fleet Manager
-  const resolveConflict = (
-    vehicleId: string,
-    action: 'assign_alternate' | 'expedite' | 'defer',
-    notes: string
-  ) => {
-    const vehicle = vehicles.find((v) => v.id === vehicleId);
-    if (!vehicle) return;
+  const closeWorkOrder = async (orderId: string, afterNotes: string) => {
+    const woBefore = workOrders.find(w => w.id === orderId);
+    const wo = workOrders.find(w => w.id === orderId);
+    if (!wo) return;
+    try {
+      await syncCloseWorkOrderAtomic(orderId, afterNotes);
+      
+      if (woBefore) {
+        recordAudit(
+          'work_order',
+          orderId,
+          'STATUS_CHANGE',
+          { status: woBefore.status, after_notes: woBefore.before_after_notes.after },
+          { status: 'Closed', after_notes: afterNotes },
+          currentUser?.id || 'sys',
+          currentRole,
+          activeTenantId
+        );
+      }
+      
+      setWorkOrders(prev => prev.map(w =>
+        w.id === orderId ? { ...w, status: 'Closed', closed_date: new Date().toISOString(), before_after_notes: { ...w.before_after_notes, after: afterNotes } } : w
+      ));
 
-    // Record audit log for alert / rule override decision
-    recordAudit(
-      'alert',
-      `R4-ALT-${vehicleId}`,
-      'OVERRIDE',
-      { vehicle_id: vehicleId, scheduled_use_days: vehicle.scheduled_use_days, status_reason: vehicle.status_reason },
-      { action, notes, resolved_by: currentUser?.id || 'usr-fm-01' },
-      currentUser?.id || 'usr-fm-01',
-      currentRole
-    );
-    if (action === 'assign_alternate') {
-      // Reassign route to a healthy vehicle
-      setVehicles((prev) =>
-        prev.map((v) =>
-          v.id === vehicleId
-            ? {
-                ...v,
-                scheduled_use_days: 30, // Route covered
-                status_reason: `${v.status_reason} — [Resolved by Fleet Manager: Reassigned Route to backup coach]`,
-              }
-            : v
-        )
-      );
+      setVehicles(prev => prev.map(v => {
+        if (v.id === wo.vehicle_id) {
+          return {
+            ...v,
+            status: 'Healthy',
+            active_fault_codes: v.active_fault_codes.filter(f => f.code !== wo.related_fault_code),
+            status_reason: 'Cleared',
+          };
+        }
+        return v;
+      }));
+
       addAlert({
-        rule_id: 'R4',
-        title: `Conflict Resolved: ${vehicle.plate}`,
-        description: `Fleet Manager reassigned route for ${vehicle.plate}. Notes: ${notes}`,
+        rule_id: 'R1',
+        title: `Work Order Completed`,
+        description: `Work Order ${orderId} completed successfully. Vehicle health restored.`,
         severity: 'info',
-        vehicle_id: vehicle.id,
+        vehicle_id: wo.vehicle_id,
       });
-    } else if (action === 'expedite') {
+    } catch (e) {
+      console.error('Error closing WO:', e);
+    }
+  };
+
+  const submitDriverIncident = async (vehicleId: string, category: Incident['category'], description: string, reportedBy?: string) => {
+    try {
+      const newIncident: Omit<Incident, 'id'> = {
+        vehicle_id: vehicleId,
+        vehicle_plate: vehicles.find(v => v.id === vehicleId)?.plate || '',
+        category,
+        description,
+        reported_by: reportedBy || 'Driver',
+        status: 'Investigation',
+        matched_to_fault: false,
+        created_date: new Date().toISOString(),
+      };
+      const success = await syncSubmitDriverIncidentToSupabase(newIncident);
+
+      if (success) {
+        setIncidents(prev => [{ ...newIncident, id: `INC-${Date.now()}` } as Incident, ...prev]);
+      }
+
       addAlert({
-        rule_id: 'R4',
-        title: `Repair Expedited: ${vehicle.plate}`,
-        description: `Fleet Manager marked repair as top priority for departure in ${vehicle.scheduled_use_days} days. Notes: ${notes}`,
+        rule_id: 'R6',
+        title: `R6 Driver Incident Reported: ${vehicleId}`,
+        description: `New incident reported: ${category}. No matching OBD fault detected yet. Investigation required.`,
         severity: 'warning',
-        vehicle_id: vehicle.id,
+        vehicle_id: vehicleId,
       });
-    } else {
-      addAlert({
-        rule_id: 'R4',
-        title: `Service Deferred: ${vehicle.plate}`,
-        description: `Fleet Manager deferred non-critical service for ${vehicle.plate}. Notes: ${notes}`,
-        severity: 'info',
-        vehicle_id: vehicle.id,
-      });
+
+    } catch (e) {
+      console.error('Failed to submit driver incident', e);
     }
   };
 
-  const markAlertRead = (alertId: string) => {
-    setAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a, read: true } : a)));
+  const resetSeedData = () => {
+    setVehicles(INITIAL_VEHICLES);
+    setInventory(INITIAL_INVENTORY);
+    setWorkOrders(INITIAL_WORK_ORDERS);
+    setIncidents(INITIAL_INCIDENTS);
+    setCostRecords(INITIAL_COST_RECORDS);
+    setAlerts(INITIAL_ALERTS);
+    setGoldenPathAStatus({ active: false, currentStep: 0 });
+    setGoldenPathBStatus({ active: false, currentStep: 0 });
   };
 
-  // Computed: R5 Shortfall Projection
-  // Count vehicles crossing service thresholds in next N days (e.g. 14 days) -> sum implied parts demand -> compare to stock
+  const updateCaeDelayMultiplier = (classification: VehicleClassification, mult: number) => {
+    setCaeDelayMultipliers(prev => ({ ...prev, [classification]: mult }));
+  };
+
   const projectedShortfallParts = useMemo(() => {
-    const shortfalls: {
-      part: InventoryItem;
-      projectedDemand: number;
-      shortfallUnits: number;
-      shortfallDays: number;
-      affectedVehicles: string[];
-    }[] = [];
-
+    const shortfalls: any[] = [];
     inventory.forEach((part) => {
-      // Find all vehicles needing this part based on active faults or upcoming service threshold
-      const affectedPlates: string[] = [];
       let demand = 0;
-
+      const affectedPlates: string[] = [];
       vehicles.forEach((v) => {
-        const hasFaultNeed = v.active_fault_codes.some((f) => f.required_part_id === part.id);
-        const serviceDueSoon = v.next_service_mileage - v.mileage <= 1500 || v.scheduled_use_days <= 10;
-        const compatible = part.compatible_vehicles.includes(v.plate) || part.compatible_vehicles.includes(v.id);
-
-        if (hasFaultNeed) {
+        const partNeeded = v.active_fault_codes?.some(f => f.required_part_id === part.id);
+        if (partNeeded) {
           demand += 1;
-          if (!affectedPlates.includes(v.plate)) affectedPlates.push(v.plate);
-        } else if (serviceDueSoon && compatible) {
-          demand += 1;
-          if (!affectedPlates.includes(v.plate)) affectedPlates.push(v.plate);
+          affectedPlates.push(v.plate);
         }
       });
-
       if (demand > 0 && part.quantity <= demand) {
         const shortfallUnits = demand - part.quantity + 1;
         shortfalls.push({
@@ -1032,42 +634,30 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         });
       }
     });
-
     return shortfalls;
   }, [inventory, vehicles]);
 
-  // Computed: CAE Items (Ranked list for CAE Budget Prioritization)
   const caeItems: CAEItem[] = useMemo(() => {
     const items: CAEItem[] = [];
-
     vehicles.forEach((v) => {
-      // Build CAE items for vehicles in Attention or Critical status
       if (v.status === 'Critical' || v.status === 'Attention') {
         const fault = v.active_fault_codes[0] || {
           code: 'GEN-01',
           name: 'Scheduled Threshold Intervention Required',
           severity: v.status === 'Critical' ? 'Critical' : 'Warning',
         };
-
-        // Repair cost = sum of required part cost + standard labor ($140/hr * 10 hrs = $1400)
         let partsCost = 450;
         const reqPartId = (fault as any).required_part_id;
         if (reqPartId) {
           const p = inventory.find((item) => item.id === reqPartId);
           if (p) partsCost = p.unit_cost;
         }
-        const repairCost = partsCost + 1400; // [Calculated]
-
+        const repairCost = partsCost + 1400; 
         const delayMult = caeDelayMultipliers[v.classification] || (v.classification === 'Keystone' ? 2.2 : 1.4);
-        const deferralCost = Math.round(repairCost * delayMult); // [Statistical estimate]
-        const failureLikelihood =
-          fault.severity === 'Critical' ? 0.85 : fault.severity === 'Warning' ? 0.45 : 0.25; // [Statistical estimate]
-        const classWeight = v.classification === 'Keystone' ? 1.5 : 1.0; // [Configured]
-
-        const rankScore = Number(
-          ((deferralCost / repairCost) * classWeight * failureLikelihood).toFixed(3)
-        );
-
+        const deferralCost = Math.round(repairCost * delayMult); 
+        const failureLikelihood = fault.severity === 'Critical' ? 0.85 : fault.severity === 'Warning' ? 0.45 : 0.25; 
+        const classWeight = v.classification === 'Keystone' ? 1.5 : 1.0; 
+        const rankScore = Number(((deferralCost / repairCost) * classWeight * failureLikelihood).toFixed(3));
         items.push({
           vehicle_id: v.id,
           vehicle_plate: v.plate,
@@ -1086,16 +676,12 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         });
       }
     });
-
-    // Sort descending by rank score!
     return items.sort((a, b) => b.rank_score - a.rank_score);
   }, [vehicles, inventory, caeDelayMultipliers]);
 
-  // Interactive Golden Path A Step trigger
   const triggerGoldenPathAStep = (step: number) => {
     setGoldenPathAStatus({ active: true, currentStep: step });
     if (step === 1) {
-      // Mechanic logs OBD fault P0299 on V-024
       logOBDFault('V-024', {
         code: 'P0299',
         name: 'Turbocharger Boost Sensor A Circuit Low',
@@ -1112,14 +698,10 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         part_id: 'TURBO-SENS-01',
       });
     } else if (step === 2) {
-      // R1 + R3 Fired -> Fleet Manager sees Conflict
-      changeRole('FLEET_MANAGER');
-      changeScreen('CONFLICT_ALERTS');
+      changeRole('FLEET_MANAGER', 'CONFLICT_ALERTS');
       setSelectedVehicleId('V-024');
     } else if (step === 3) {
-      // Maintenance Manager creates Work Order #WO-4091
-      changeRole('MAINTENANCE_MANAGER');
-      changeScreen('WORK_ORDER_QUEUE');
+      changeRole('MAINTENANCE_MANAGER', 'WORK_ORDER_QUEUE');
       createWorkOrder({
         vehicle_id: 'V-024',
         type: 'Corrective',
@@ -1139,27 +721,18 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         related_fault_code: 'P0299',
       });
     } else if (step === 4) {
-      // Operations Controller sees stock consumed
-      changeRole('OPERATIONS');
-      changeScreen('INVENTORY_DASHBOARD');
+      changeRole('OPERATIONS', 'INVENTORY_DASHBOARD');
     } else if (step === 5) {
-      // Finance Controller sees it in variance
-      changeRole('FINANCE');
-      changeScreen('VARIANCE_DASHBOARD');
+      changeRole('FINANCE', 'VARIANCE_DASHBOARD');
     } else if (step === 6) {
-      // Director sees it in aggregate
-      changeRole('DIRECTOR');
-      changeScreen('STRATEGIC_DASHBOARD');
+      changeRole('DIRECTOR', 'STRATEGIC_DASHBOARD');
     }
   };
 
-  // Interactive Golden Path B Step trigger
   const triggerGoldenPathBStep = (step: number) => {
     setGoldenPathBStatus({ active: true, currentStep: step });
     if (step === 1) {
-      // Driver reports incident with no matching fault code -> R6 creates Investigation
-      changeRole('DRIVER');
-      changeScreen('DRIVER_MOBILE_VIEW');
+      changeRole('DRIVER', 'DRIVER_MOBILE_VIEW');
       submitDriverIncident(
         'V-018',
         'Noise',
@@ -1167,13 +740,9 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         'Mohamed Farsi (Driver)'
       );
     } else if (step === 2) {
-      // Maintenance Manager & Fleet Manager notified
-      changeRole('MAINTENANCE_MANAGER');
-      changeScreen('INCIDENT_REPORTS');
+      changeRole('MAINTENANCE_MANAGER', 'INCIDENT_REPORTS');
     } else if (step === 3) {
-      // Mechanic performs on-site OBD check -> discovers fault -> continues into Golden Path A
-      changeRole('MECHANIC');
-      changeScreen('MECHANIC_MOBILE_QUEUE');
+      changeRole('MECHANIC', 'MECHANIC_MOBILE_QUEUE');
       logOBDFault('V-018', {
         code: 'C0035',
         name: 'Front Left Wheel Speed Sensor Signal Erratic',
@@ -1181,14 +750,11 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         required_part_id: 'WHL-SENS-05',
         required_intervention: 'Inspect sensor reluctor ring and replace wheel speed sensor.',
       });
-      // Link incident to resolved investigation
       setIncidents((prev) =>
         prev.map((i) => (i.vehicle_id === 'V-018' ? { ...i, matched_to_fault: true, related_fault_code: 'C0035' } : i))
       );
     } else if (step === 4) {
-      // Switch to Maintenance Manager to create work order
-      changeRole('MAINTENANCE_MANAGER');
-      changeScreen('WORK_ORDER_QUEUE');
+      changeRole('MAINTENANCE_MANAGER', 'WORK_ORDER_QUEUE');
       createWorkOrder({
         vehicle_id: 'V-018',
         type: 'Corrective',
@@ -1213,8 +779,6 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   return (
     <FleetContext.Provider
       value={{
-        currentRole,
-        currentScreen,
         vehicles,
         inventory,
         workOrders,
@@ -1222,31 +786,18 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         costRecords,
         alerts,
         fuelLogs,
+        pmSchedules,
+        ediOrders,
         caeAvailableBudget,
         caeDelayMultipliers,
         selectedVehicleId,
-        isRoleSelectorOpen,
         goldenPathAStatus,
         goldenPathBStatus,
-        currentUser,
-        userProfile,
-        subscription,
-        syncStatus,
-        refreshUserSession,
-
-        tenantConfigs,
-        activeTenantId,
-        activeTenant,
-        updateTenantConfig,
-        setActiveTenantId,
-        addTenantConfig,
-
-        changeRole,
-        changeScreen,
-        setSelectedVehicleId,
-        setIsRoleSelectorOpen,
         setCaeAvailableBudget,
         updateCaeDelayMultiplier,
+        addEdiPurchaseOrder,
+        transmitEdiOrder,
+        addPMSchedule,
         logOBDFault,
         createWorkOrder,
         closeWorkOrder,
@@ -1257,9 +808,9 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         resetSeedData,
         triggerGoldenPathAStep,
         triggerGoldenPathBStep,
-
         caeItems,
         projectedShortfallParts,
+        setSelectedVehicleId,
       }}
     >
       {children}

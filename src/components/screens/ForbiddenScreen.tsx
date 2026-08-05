@@ -1,10 +1,10 @@
 import React from 'react';
 import { ShieldAlert, ArrowLeft } from 'lucide-react';
-import { useFleet } from '../../context/FleetContext';
+import { useAuth } from '../../context/AuthContext';
 import { useLocalization } from '../../context/LocalizationContext';
 
 export const ForbiddenScreen: React.FC = () => {
-  const { currentRole, userProfile, changeScreen } = useFleet();
+  const { currentRole, userProfile, changeScreen } = useAuth();
   const { t } = useLocalization();
 
   return (

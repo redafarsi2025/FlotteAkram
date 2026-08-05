@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useFleet } from '../../context/FleetContext';
+import { useAuth } from '../../context/AuthContext';
 import { useLocalization } from '../../context/LocalizationContext';
 import { DriverSafetyView } from './DriverSafetyView';
 import { recordAudit } from '../../services/auditService';
@@ -155,7 +156,8 @@ const INITIAL_DRIVERS_TELEMETRY: DriverTelemetry[] = [
 
 export const SafetyPerformance: React.FC = () => {
   const { currentLanguage, dir, t } = useLocalization();
-  const { currentRole, setSelectedVehicleId, createWorkOrder } = useFleet();
+  const { setSelectedVehicleId, createWorkOrder } = useFleet();
+  const { currentRole } = useAuth();
 
   const [drivers, setDrivers] = useState<DriverTelemetry[]>(INITIAL_DRIVERS_TELEMETRY);
   const [searchQuery, setSearchQuery] = useState('');

@@ -11,6 +11,11 @@ import {
   Boxes,
   ArrowRight,
   TrendingUp,
+  QrCode,
+  Radio,
+  ScanLine,
+  Search,
+  Check,
 } from 'lucide-react';
 
 export const InventoryDashboard: React.FC = () => {
@@ -18,6 +23,9 @@ export const InventoryDashboard: React.FC = () => {
   const { t } = useLocalization();
 
   const [filterLowStock, setFilterLowStock] = useState<boolean>(false);
+  const [isScannerOpen, setIsScannerOpen] = useState<boolean>(false);
+  const [scannedTagInput, setScannedTagInput] = useState<string>('');
+  const [scanResult, setScanResult] = useState<any | null>(null);
 
   const displayedInventory = filterLowStock
     ? inventory.filter((item) => item.quantity <= item.reorder_threshold)
@@ -26,6 +34,27 @@ export const InventoryDashboard: React.FC = () => {
   const totalPartTypes = inventory.length;
   const lowStockCount = inventory.filter((item) => item.quantity <= item.reorder_threshold).length;
   const totalStockValue = inventory.reduce((sum, item) => sum + item.quantity * item.unit_cost, 0);
+
+  const handleSimulateScan = (tagOrSku: string) => {
+    setScannedTagInput(tagOrSku);
+    const found = inventory.find(
+      (item) =>
+        item.sku.toLowerCase() === tagOrSku.toLowerCase() ||
+        item.id.toLowerCase() === tagOrSku.toLowerCase() ||
+        (item.rfid_tag_id && item.rfid_tag_id.toLowerCase() === tagOrSku.toLowerCase())
+    ) || inventory[0];
+
+    if (found) {
+      setScanResult({
+        part: found,
+        rfid: found.rfid_tag_id || `RFID-${Math.floor(10000 + Math.random() * 90000)}-VALEO`,
+        barcode: found.barcode || `3700${Math.floor(100000000 + Math.random() * 900000000)}`,
+        bin: found.location_bin || `RACK-A${Math.floor(1 + Math.random() * 9)}-BIN-04`,
+        status: 'In Stock',
+        scannedAt: new Date().toLocaleTimeString(),
+      });
+    }
+  };
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
@@ -43,7 +72,17 @@ export const InventoryDashboard: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => {
+              setIsScannerOpen(true);
+              handleSimulateScan(inventory[0]?.sku || 'TURBO-SENS-01');
+            }}
+            className="inline-flex items-center gap-2 px-3.5 py-2 bg-gradient-to-r from-slate-900 to-indigo-950 text-white font-bold text-xs rounded-xl hover:from-slate-800 hover:to-indigo-900 transition-all cursor-pointer shadow-sm border border-indigo-800/50"
+          >
+            <ScanLine className="w-4 h-4 text-indigo-400" />
+            Scanner RFID / Code-Barres
+          </button>
           <KPIBadge type="Calculated" formula="Unit Cost * On-Hand Inventory Quantity" />
         </div>
       </div>
@@ -252,6 +291,85 @@ export const InventoryDashboard: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* RFID & Barcode Scanner Modal */}
+      {isScannerOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 text-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-indigo-800 space-y-4">
+            <div className="flex items-center justify-between border-b border-indigo-900 pb-3">
+              <h3 className="text-base font-black text-white flex items-center gap-2">
+                <ScanLine className="w-5 h-5 text-indigo-400 animate-pulse" /> Lecteur RFID & Code-Barres
+              </h3>
+              <button
+                onClick={() => setIsScannerOpen(false)}
+                className="text-slate-400 hover:text-white font-bold text-lg cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-4 bg-slate-950 rounded-xl border border-indigo-900/60 flex flex-col items-center justify-center space-y-3">
+              <div className="w-20 h-20 rounded-2xl bg-indigo-950 border-2 border-indigo-500/50 flex items-center justify-center text-indigo-400 shadow-inner">
+                <Radio className="w-10 h-10 animate-pulse" />
+              </div>
+              <p className="text-xs text-indigo-200 font-medium text-center">
+                Approchez le tag RFID de la pièce ou pointez le pistolet laser vers le code-barres de la boîte.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-slate-300">
+                Sélectionner ou saisir un Tag RFID / SKU
+              </label>
+              <div className="flex gap-2">
+                <select
+                  value={scannedTagInput}
+                  onChange={(e) => handleSimulateScan(e.target.value)}
+                  className="flex-1 px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs font-mono font-bold text-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  {inventory.map((item) => (
+                    <option key={item.id} value={item.sku}>
+                      {item.sku} — {item.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {scanResult && (
+              <div className="p-4 bg-indigo-950/60 border border-indigo-500/40 rounded-xl space-y-2 text-xs">
+                <div className="flex items-center justify-between border-b border-indigo-900/60 pb-2">
+                  <span className="font-bold text-white text-sm">{scanResult.part.name}</span>
+                  <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase border border-emerald-500/30">
+                    {scanResult.status}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-indigo-200 font-mono text-[11px]">
+                  <div>SKU: <strong className="text-white">{scanResult.part.sku}</strong></div>
+                  <div>ID Tag RFID: <strong className="text-indigo-300">{scanResult.rfid}</strong></div>
+                  <div>Code-Barres: <strong className="text-white">{scanResult.barcode}</strong></div>
+                  <div>Emplacement Casier: <strong className="text-emerald-300">{scanResult.bin}</strong></div>
+                </div>
+
+                <div className="pt-2 text-[11px] text-slate-400 flex justify-between">
+                  <span>Stock Physique: <strong className="text-white">{scanResult.part.quantity} unités</strong></span>
+                  <span>Scanné à: {scanResult.scannedAt}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="pt-2 flex justify-end">
+              <button
+                onClick={() => setIsScannerOpen(false)}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl cursor-pointer"
+              >
+                Fermer le Scanner
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Send, Trash2, CheckCircle, Clock, Shield, AlertCircle, RefreshCw, Copy } from 'lucide-react';
-import { useFleet } from '../../context/FleetContext';
+import { useAuth } from '../../context/AuthContext';
+import { useTenant } from '../../context/TenantContext';
 import { useLocalization } from '../../context/LocalizationContext';
 import { Invitation, Role } from '../../types';
 import { createInvitation, listPendingInvitations, revokeInvitation } from '../../services/invitationService';
@@ -16,7 +17,8 @@ const INVITAIBLE_ROLES: { role: Role; label: string; desc: string }[] = [
 ];
 
 export const InvitationsScreen: React.FC = () => {
-  const { currentRole, activeTenantId, userProfile } = useFleet();
+  const { currentRole, userProfile } = useAuth();
+  const { activeTenantId } = useTenant();
   const { t } = useLocalization();
 
   const [invitations, setInvitations] = useState<Invitation[]>([]);

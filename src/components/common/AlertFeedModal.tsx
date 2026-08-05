@@ -1,5 +1,6 @@
 import React from 'react';
 import { useFleet } from '../../context/FleetContext';
+import { useAuth } from '../../context/AuthContext';
 import { useLocalization } from '../../context/LocalizationContext';
 import { FleetAlert } from '../../types';
 import {
@@ -18,7 +19,8 @@ interface AlertFeedModalProps {
 }
 
 export const AlertFeedModal: React.FC<AlertFeedModalProps> = ({ onClose }) => {
-  const { alerts, markAlertRead, changeScreen, setSelectedVehicleId, inventory } = useFleet();
+  const { alerts, markAlertRead, setSelectedVehicleId, inventory } = useFleet();
+  const { changeScreen } = useAuth();
   const { t } = useLocalization();
 
   const openAlerts = alerts.filter((a) => !a.read);

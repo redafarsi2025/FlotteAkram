@@ -24,6 +24,8 @@ export type ScreenId =
   | 'FLEET_HEALTH_GRID'
   | 'INVENTORY_DASHBOARD'
   | 'WORK_ORDER_QUEUE'
+  | 'PM_SCHEDULES'
+  | 'EDI_SUPPLIERS'
   | 'CONFLICT_ALERTS'
   | 'CAE_BUDGET_PRIORITIZATION'
   | 'INCIDENT_REPORTS'
@@ -195,6 +197,72 @@ export interface InventoryItem {
   compatible_vehicles: string[]; // plates or ids
   lead_time_days: number;
   category: string;
+  rfid_tag_id?: string;
+  barcode?: string;
+  supplier_name?: string;
+  location_bin?: string;
+}
+
+export interface EdiSupplierPurchaseOrder {
+  id: string;
+  po_number: string;
+  supplier_name: 'Bosch Automotive' | 'Valeo Fleet Parts' | 'Michelin Pro' | 'Continental Tires' | 'ZF Aftermarket';
+  edi_protocol: 'EDIFACT ORDERS D96A' | 'REST JSON API v2' | 'ANSI X12 850';
+  status: 'Draft' | 'Transmitted EDI' | 'Confirmed' | 'In Transit' | 'Received';
+  items: {
+    part_id: string;
+    part_sku: string;
+    part_name: string;
+    quantity: number;
+    unit_cost: number;
+  }[];
+  total_amount: number;
+  created_at: string;
+  transmitted_at?: string;
+  estimated_delivery?: string;
+  ack_payload?: string;
+}
+
+export interface RfidScanResult {
+  rfid_tag_id: string;
+  barcode: string;
+  part_id: string;
+  part_name: string;
+  sku: string;
+  location_bin: string;
+  batch_number: string;
+  status: 'In Stock' | 'Reserved WO' | 'Installed On Vehicle';
+  scanned_at: string;
+}
+
+export interface PMSchedule {
+  id: string;
+  title: string;
+  system_category: 'Engine' | 'Brakes' | 'Transmission' | 'Electrical' | 'Chassis & Tires';
+  trigger_type: 'km' | 'hours' | 'days';
+  interval_value: number; // e.g. 15000 (km), 500 (hours), 365 (days)
+  applicable_classifications: VehicleClassification[];
+  required_parts: {
+    part_id: string;
+    part_name: string;
+    quantity: number;
+  }[];
+  estimated_labor_hours: number;
+  active: boolean;
+}
+
+export interface VehiclePMStatus {
+  vehicle_id: string;
+  vehicle_plate: string;
+  pm_schedule_id: string;
+  pm_title: string;
+  last_performed_mileage: number;
+  last_performed_date: string;
+  next_due_mileage: number;
+  next_due_date: string;
+  km_remaining: number;
+  days_remaining: number;
+  status: 'Overdue' | 'Due Soon' | 'Ok';
 }
 
 export interface Incident {
@@ -318,7 +386,26 @@ export interface AuditLog {
 // VENDOR-AGNOSTIC TELEMATICS INGESTION LAYER
 // ==========================================
 
-export type TelematicsProviderType = 'teltonika' | 'flespi_wialon' | 'manual';
+export type TelematicsProviderType = 'nexttransit_gateway' | 'teltonika' | 'flespi_wialon' | 'manual';
+
+export interface PredictiveAiResult {
+  vehicle_id: string;
+  vehicle_plate: string;
+  critical_subsystem: 'Brake System' | 'Transmission' | 'Engine Lubrication' | 'Electrical/Battery' | 'Chassis & Suspension';
+  failure_likelihood_percentage: number; // 0-100
+  estimated_hours_to_failure: number; // e.g. 48
+  predictive_r1_alert: boolean; // Triggers R1-Prédictive if failure_likelihood > 70% or hours < 72h
+  recommended_action: string;
+  confidence_score: number;
+  telemetry_anomalies: {
+    sensor: string;
+    current_value: string;
+    baseline_value: string;
+    deviation: string;
+  }[];
+  reasoning_fr: string;
+  generated_at: string;
+}
 
 export interface DeviceMapping {
   id: string;

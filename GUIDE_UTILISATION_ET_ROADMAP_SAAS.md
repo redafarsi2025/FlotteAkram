@@ -64,13 +64,14 @@ Le SaaS intègre une gestion fine des accès (RBAC - *Role-Based Access Control*
 
 | Rôle Utilisateur | Identifiant (`Role`) | Écran par Défaut | Accès Principal & Responsabilité |
 | :--- | :--- | :--- | :--- |
-| **Directeur Général** | `DIRECTOR` | **Strategic Dashboard** | Vue exécutive globale, KPI financiers, arbitrage du budget CAE, validation des écarts (R7). |
+| **Super Administrateur** | `SUPER_ADMIN` | **Strategic Dashboard** | Accès complet plateforme SaaS, gestion multi-tenant, abonnements & paramétrage global. |
+| **Directeur Général** | `DIRECTOR` | **Strategic Dashboard** | Vue exécutive globale, KPI financiers, arbitrage du budget CAE (R5), validation des écarts (R7). |
 | **Gestionnaire de Flotte** | `FLEET_MANAGER` | **Fleet Health Grid** | Contrôle opérationnel, supervision OBD-II, gestion des urgences **R1**, résolution des conflits **R2**. |
-| **Contrôleur Technique** | `TECHNICAL_CONTROLLER` | **Work Order Queue** | Dispatch atelier, qualification des pannes, génération des ordres d'investigation **R6**, suivi main d'œuvre. |
-| **Contrôleur de Gestion** | `MGMT_CONTROLLER` | **Variance Dashboard** | Contrôle financier, rapprochement SCF, analyse de variance budgétaire **R7**, taux horaires et coûts. |
-| **Contrôleur Logistique** | `LOGISTICS_CONTROLLER` | **Inventory Dashboard** | Gestion du magasin de pièces, réservations automatiques **R3**, alertes de stock bas et bons de commande. |
-| **Mécanicien Atelier** | `MECHANIC` | **Mechanic Mobile Queue** | File d'attente mobile, check-list intervention, saisie des pièces consommées et photos Avant/Après. |
-| **Chauffeur** | `DRIVER` | **Driver Mobile View** | Inspection de départ (DVIR), signalement rapide d'anomalies mécaniques, suivi de la sécurité. |
+| **Responsable Maintenance** | `MAINTENANCE_MANAGER` | **Work Order Queue** | Dispatch atelier, qualification des pannes, ordres d'investigation **R6**, suivi garanties & pièces. |
+| **Contrôleur Financier** | `FINANCE` | **Variance Dashboard** | Contrôle financier, rapprochement SCF, analyse de variance budgétaire **R7**, suivi factures & coûts. |
+| **Responsable Opérations** | `OPERATIONS` | **Inventory Dashboard** | Gestion du magasin de pièces, réservations automatiques **R3**, alertes de stock et bons de commande. |
+| **Mécanicien Atelier** | `MECHANIC` | **Mechanic Mobile Queue** | File d'attente mobile, check-list intervention, saisie des pièces consommées et clôture travaux. |
+| **Chauffeur** | `DRIVER` | **Driver Mobile View** | Inspection de départ (DVIR), signalement d'anomalies mécaniques, suivi sécurité & carburant. |
 
 ---
 
@@ -218,6 +219,49 @@ Le cœur de NextTransit repose sur 7 algorithmes et formules métier immutables 
 * **Fonctionnalités** :
   * Bascule instantanée entre **Français**, **Anglais** et **Arabe**.
   * **Prise en charge native RTL (Right-to-Left)** pour l'arabe avec réorganisation parfaite des composants Tailwind CSS.
+
+### 4.14 Module Garanties Constructeurs (Warranty Tracking - `/warranties`)
+* **Public Cible** : Responsables Maintenance (`MAINTENANCE_MANAGER`), Directeurs de Flotte.
+* **Fonctionnalités** :
+  * **Suivi des contrats sous garantie** (Constructeur, date d'expiration, kilométrage max, systèmes couverte).
+  * **Protection Déchéance R1** : Avertissement automatique lors de la création d'un Ordre de Travail si la pièce ou le système est sous garantie constructeur pour éviter la perte de couverture.
+
+### 4.15 Module Carburant & Consommation (Fuel & Anomaly Tracking - `/fuel`)
+* **Public Cible** : Contrôleurs Financiers (`FINANCE`), Responsables Logistique.
+* **Fonctionnalités** :
+  * **Registre des pleins** (volume en litres, coût total, kilométrage et station).
+  * **Détection d'anomalie de consommation** : Alerte automatique si la consommation aux 100 km s'écarte de +15% du sous-ensemble type de la flotte.
+  * **Alimentation R7** : Intégration directe du poste carburant dans l'analyse de variance financière.
+
+### 4.16 Stream Télématique & Mappages Boîtiers (Telemetry Stream - `/telemetry`)
+* **Public Cible** : Super Administrateurs (`SUPER_ADMIN`), Intégrateurs IoT.
+* **Fonctionnalités** :
+  * **Visualisation du flux IoT** en direct (CAN-Bus, OBD-II, GPS lat/lng, vitesse, statut ignition).
+  * **Abstraction Multi-Constructeur** : Prise en charge des connecteurs Teltonika, Flespi, Wialon et du mode déclaratif manuel (`ManualEntryProvider`).
+
+### 4.17 Journal d'Audit Système Immuable (Audit Log - `/audit`)
+* **Public Cible** : Administrateurs & Auditeurs de Sécurité (ISO 27001 / Conformité).
+* **Fonctionnalités** :
+  * **Historique infalsifiable des mutations** : Journalisation de toute création/modification sur les véhicules, WOs, pièces, règles R1-R7 et abonnements.
+  * **Filtrage par acteur, action et période** avec capture JSON `before` / `after`.
+
+### 4.18 Gestion des Invitations & Équipes (Team Invitations - `/invitations`)
+* **Public Cible** : Administrateurs d'Entreprise, Directeurs RH & Flotte.
+* **Fonctionnalités** :
+  * Envoi d'invitations sécurisées par e-mail avec pré-assignation du rôle RBAC et du locataire `tenant_id`.
+  * Révocation et suivi du statut des liens d'activation (`Pending`, `Accepted`, `Expired`).
+
+### 4.19 Facturation SaaS & Abonnements (Billing & Subscriptions - `/billing`)
+* **Public Cible** : Super Administrateurs & Directeurs Financiers (Client Enterprise).
+* **Fonctionnalités** :
+  * **Statut de l'abonnement** (`Active`, `Trialing`, `Past Due`, `Cancelled`).
+  * **Comptage des véhicules actifs** par rapport au quota du plan (ex: 900 camions sur Plan Enterprise).
+  * **Gestion des cartes de paiement, factures PDF et historique de facturation**.
+
+### 4.20 Protection Sécurité & Accès Interdit (RBAC Guard - `/forbidden`)
+* **Public Cible** : Tous les utilisateurs authentifiés.
+* **Fonctionnalités** :
+  * Écran de sécurité affiché automatiquement lorsqu'un utilisateur tente d'accéder à un écran ou un module non autorisé par la matrice RBAC ou par l'état de souscription SaaS.
 
 ---
 

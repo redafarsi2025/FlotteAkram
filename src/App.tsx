@@ -1,6 +1,8 @@
 import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { FleetProvider, useFleet } from './context/FleetContext';
+import { useFleet } from './context/FleetContext';
+import { AppProviders } from './context/AppProviders';
+import { useAuth } from './context/AuthContext';
 import { LocalizationProvider, useLocalization } from './context/LocalizationContext';
 import { TopBar } from './components/common/TopBar';
 import { Sidebar } from './components/common/Sidebar';
@@ -16,6 +18,8 @@ const VarianceDashboard = lazy(() => import('./components/screens/VarianceDashbo
 const FleetHealthGrid = lazy(() => import('./components/screens/FleetHealthGrid').then(m => ({ default: m.FleetHealthGrid })));
 const InventoryDashboard = lazy(() => import('./components/screens/InventoryDashboard').then(m => ({ default: m.InventoryDashboard })));
 const WorkOrderQueue = lazy(() => import('./components/screens/WorkOrderQueue').then(m => ({ default: m.WorkOrderQueue })));
+const PMSchedulesView = lazy(() => import('./components/screens/PMSchedulesView').then(m => ({ default: m.PMSchedulesView })));
+const EdiSuppliersView = lazy(() => import('./components/screens/EdiSuppliersView').then(m => ({ default: m.EdiSuppliersView })));
 const ConflictAlerts = lazy(() => import('./components/screens/ConflictAlerts').then(m => ({ default: m.ConflictAlerts })));
 const CaeBudgetPrioritization = lazy(() => import('./components/screens/CaeBudgetPrioritization').then(m => ({ default: m.CaeBudgetPrioritization })));
 const IncidentReports = lazy(() => import('./components/screens/IncidentReports').then(m => ({ default: m.IncidentReports })));
@@ -38,7 +42,8 @@ const RouteFallback: React.FC = () => (
 );
 
 const AppLayout: React.FC = () => {
-  const { currentScreen, changeScreen, selectedVehicleId, setSelectedVehicleId } = useFleet();
+  const { selectedVehicleId, setSelectedVehicleId } = useFleet();
+  const { currentScreen, changeScreen } = useAuth();
   const { dir } = useLocalization();
   const location = useLocation();
 
@@ -71,6 +76,8 @@ const AppLayout: React.FC = () => {
               <Route path="/vehicles" element={<FleetHealthGrid />} />
               <Route path="/inventory" element={<InventoryDashboard />} />
               <Route path="/work-orders" element={<WorkOrderQueue />} />
+              <Route path="/pm-schedules" element={<PMSchedulesView />} />
+              <Route path="/edi-suppliers" element={<EdiSuppliersView />} />
               <Route path="/conflicts" element={<ConflictAlerts />} />
               <Route path="/cae" element={<CaeBudgetPrioritization />} />
               <Route path="/incidents" element={<IncidentReports />} />
@@ -104,11 +111,9 @@ const AppLayout: React.FC = () => {
 export default function App() {
   return (
     <BrowserRouter>
-      <LocalizationProvider>
-        <FleetProvider>
-          <AppLayout />
-        </FleetProvider>
-      </LocalizationProvider>
+      <AppProviders>
+        <AppLayout />
+      </AppProviders>
     </BrowserRouter>
   );
 }

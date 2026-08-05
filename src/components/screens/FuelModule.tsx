@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useFleet } from '../../context/FleetContext';
+import { useTenant } from '../../context/TenantContext';
 import { useLocalization } from '../../context/LocalizationContext';
 import { fuelService, CalculatedFuelLog } from '../../services/fuelService';
 import { KPIBadge } from '../common/KPIBadge';
@@ -17,7 +18,8 @@ import {
 } from 'lucide-react';
 
 export const FuelModule: React.FC = () => {
-  const { vehicles, fuelLogs, addFuelLog, activeTenant } = useFleet();
+  const { vehicles, fuelLogs, addFuelLog } = useFleet();
+  const { activeTenant } = useTenant();
   const { t } = useLocalization();
 
   // Selected vehicle filter for trend view

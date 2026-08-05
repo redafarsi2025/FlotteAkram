@@ -3,6 +3,22 @@ import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { freeTranslateText } from './src/services/freeTranslationService';
 import { z } from 'zod';
+import { GoogleGenAI, Type } from '@google/genai';
+
+let genAIClient: GoogleGenAI | null = null;
+function getGenAI(): GoogleGenAI | null {
+  if (!genAIClient && process.env.GEMINI_API_KEY) {
+    genAIClient = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        },
+      },
+    });
+  }
+  return genAIClient;
+}
 
 // Simple in-memory rate limiter for translation endpoint
 const requestCounts = new Map<string, { count: number; resetTime: number }>();
@@ -35,6 +51,88 @@ async function startServer() {
   const PORT = 3000;
 
   app.use(express.json({ limit: '1mb' }));
+
+  // API Endpoint: Phase 2 Gemini 3.6 Flash Predictive AI Failure Forecasting Engine
+  app.post('/api/predictive-ai', async (req, res) => {
+    try {
+      const ai = getGenAI();
+      if (!ai) {
+        return res.status(503).json({
+          error: 'GEMINI_API_KEY environment variable not configured.',
+          useFallback: true,
+        });
+      }
+
+      const vehicleData = req.body;
+      const prompt = `You are NextTransit's Predictive Mechanical Maintenance & Telemetry Failure Forecasting Model.
+Analyze the following CAN-Bus OBD-II telemetry metrics and vehicle history:
+${JSON.stringify(vehicleData, null, 2)}
+
+Calculate failure risk, estimated hours before physical critical breakdown, critical subsystem, anomalies, and recommended intervention.
+Provide your rationale in clear French (reasoning_fr).`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.6-flash',
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              vehicle_id: { type: Type.STRING },
+              vehicle_plate: { type: Type.STRING },
+              critical_subsystem: { type: Type.STRING },
+              failure_likelihood_percentage: { type: Type.NUMBER },
+              estimated_hours_to_failure: { type: Type.NUMBER },
+              predictive_r1_alert: { type: Type.BOOLEAN },
+              recommended_action: { type: Type.STRING },
+              confidence_score: { type: Type.NUMBER },
+              telemetry_anomalies: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    sensor: { type: Type.STRING },
+                    current_value: { type: Type.STRING },
+                    baseline_value: { type: Type.STRING },
+                    deviation: { type: Type.STRING },
+                  },
+                },
+              },
+              reasoning_fr: { type: Type.STRING },
+            },
+            required: [
+              'vehicle_id',
+              'vehicle_plate',
+              'critical_subsystem',
+              'failure_likelihood_percentage',
+              'estimated_hours_to_failure',
+              'predictive_r1_alert',
+              'recommended_action',
+              'confidence_score',
+              'telemetry_anomalies',
+              'reasoning_fr',
+            ],
+          },
+        },
+      });
+
+      const resultText = response.text;
+      if (!resultText) {
+        return res.status(500).json({ error: 'Empty AI response', useFallback: true });
+      }
+
+      const parsedResult = JSON.parse(resultText);
+      parsedResult.generated_at = new Date().toISOString();
+      return res.json(parsedResult);
+    } catch (error: any) {
+      console.error('Error in /api/predictive-ai:', error);
+      return res.status(500).json({
+        error: error.message || 'Predictive AI generation failed',
+        useFallback: true,
+      });
+    }
+  });
 
   // API Endpoint: Server-side Gemini Translation (Now powered by Free High-Fidelity Local Engine with Zod validation)
   app.post('/api/translate', async (req, res) => {

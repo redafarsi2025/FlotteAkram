@@ -10,6 +10,8 @@ import {
   ScreenId,
   Role,
   TenantConfig,
+  PMSchedule,
+  EdiSupplierPurchaseOrder,
 } from '../types';
 
 export const ROLES_CONFIG: RoleInfo[] = [
@@ -138,6 +140,26 @@ export const RBAC_MATRIX: Record<ScreenId, Record<Role, PermissionLevel>> = {
     FINANCE: 'none',
     OPERATIONS: 'parts_status',
     MECHANIC: 'assigned_only',
+    DRIVER: 'none',
+  },
+  PM_SCHEDULES: {
+    SUPER_ADMIN: 'full',
+    DIRECTOR: 'view',
+    FLEET_MANAGER: 'full',
+    MAINTENANCE_MANAGER: 'full',
+    FINANCE: 'view',
+    OPERATIONS: 'view',
+    MECHANIC: 'view',
+    DRIVER: 'none',
+  },
+  EDI_SUPPLIERS: {
+    SUPER_ADMIN: 'full',
+    DIRECTOR: 'view',
+    FLEET_MANAGER: 'view',
+    MAINTENANCE_MANAGER: 'full',
+    FINANCE: 'full',
+    OPERATIONS: 'full',
+    MECHANIC: 'none',
     DRIVER: 'none',
   },
   CONFLICT_ALERTS: {
@@ -1067,5 +1089,111 @@ export const INITIAL_ALERTS: FleetAlert[] = [
       'Parts & Consumables actual Q3 spend ($33,600) exceeds budget ($28,000) by +20.0%. Corrective Repair also exceeds budget by +15.0%.',
     severity: 'warning',
     read: false,
+  },
+];
+
+export const INITIAL_PM_SCHEDULES: PMSchedule[] = [
+  {
+    id: 'PM-SCH-01',
+    title: 'Vidange Moteur & Remplacement Filtres (15,000 km)',
+    system_category: 'Engine',
+    trigger_type: 'km',
+    interval_value: 15000,
+    applicable_classifications: ['Keystone', 'Standard'],
+    required_parts: [
+      { part_id: 'FILTER-OIL-01', part_name: 'Heavy Duty Oil Filter', quantity: 1 },
+      { part_id: 'FILTER-AIR-02', part_name: 'Engine Intake Air Filter', quantity: 1 },
+    ],
+    estimated_labor_hours: 2.5,
+    active: true,
+  },
+  {
+    id: 'PM-SCH-02',
+    title: 'Inspection du Système de Freinage & Friction (30,000 km)',
+    system_category: 'Brakes',
+    trigger_type: 'km',
+    interval_value: 30000,
+    applicable_classifications: ['Keystone', 'Standard'],
+    required_parts: [
+      { part_id: 'BRAKE-PAD-01', part_name: 'Heavy Duty Brake Pad Set', quantity: 2 },
+    ],
+    estimated_labor_hours: 4.0,
+    active: true,
+  },
+  {
+    id: 'PM-SCH-03',
+    title: 'Contrôle Annuel Réglementaire & Sécurité (365 jours)',
+    system_category: 'Chassis & Tires',
+    trigger_type: 'days',
+    interval_value: 365,
+    applicable_classifications: ['Keystone', 'Standard'],
+    required_parts: [],
+    estimated_labor_hours: 5.0,
+    active: true,
+  },
+  {
+    id: 'PM-SCH-04',
+    title: 'Analyse d\'Huile & Révision Boîte de Vitesses (500h Moteur)',
+    system_category: 'Transmission',
+    trigger_type: 'hours',
+    interval_value: 500,
+    applicable_classifications: ['Keystone'],
+    required_parts: [
+      { part_id: 'TRANS-FLUID-01', part_name: 'Synthetic Transmission Fluid 20L', quantity: 1 },
+    ],
+    estimated_labor_hours: 3.0,
+    active: true,
+  },
+];
+
+export const INITIAL_EDI_ORDERS: EdiSupplierPurchaseOrder[] = [
+  {
+    id: 'EDI-PO-1001',
+    po_number: 'EDI-PO-2026-0801',
+    supplier_name: 'Bosch Automotive',
+    edi_protocol: 'EDIFACT ORDERS D96A',
+    status: 'Confirmed',
+    items: [
+      {
+        part_id: 'TURBO-SENS-01',
+        part_sku: 'TURBO-SENS-01',
+        part_name: 'Turbocharger Boost Pressure Sensor',
+        quantity: 5,
+        unit_cost: 120,
+      },
+    ],
+    total_amount: 600,
+    created_at: '2026-08-02 09:30',
+    transmitted_at: '2026-08-02 09:31',
+    estimated_delivery: '2026-08-06',
+    ack_payload: 'CONTRL_ACK_OK: Supplier Order #BOSCH-994821 Accepted EDIFACT',
+  },
+  {
+    id: 'EDI-PO-1002',
+    po_number: 'EDI-PO-2026-0802',
+    supplier_name: 'Valeo Fleet Parts',
+    edi_protocol: 'REST JSON API v2',
+    status: 'In Transit',
+    items: [
+      {
+        part_id: 'BRAKE-PAD-01',
+        part_sku: 'BRAKE-PAD-01',
+        part_name: 'Heavy Duty Brake Pad Set',
+        quantity: 10,
+        unit_cost: 185,
+      },
+      {
+        part_id: 'ALT-VALEO-24V',
+        part_sku: 'ALT-VALEO-24V',
+        part_name: 'Valeo 24V Heavy Alternator 120A',
+        quantity: 2,
+        unit_cost: 410,
+      },
+    ],
+    total_amount: 2670,
+    created_at: '2026-08-03 14:15',
+    transmitted_at: '2026-08-03 14:16',
+    estimated_delivery: '2026-08-05',
+    ack_payload: 'HTTP 201 Created: Order ID val-api-884920 tracking #VAL-EXPRESS-991',
   },
 ];

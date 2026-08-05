@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useFleet } from '../../context/FleetContext';
+import { useAuth } from '../../context/AuthContext';
 import { useLocalization } from '../../context/LocalizationContext';
 import { KPIBadge } from '../common/KPIBadge';
 import {
@@ -17,15 +18,8 @@ import {
 } from 'lucide-react';
 
 export const WorkOrderQueue: React.FC = () => {
-  const {
-    workOrders,
-    vehicles,
-    inventory,
-    createWorkOrder,
-    closeWorkOrder,
-    setSelectedVehicleId,
-    currentRole,
-  } = useFleet();
+  const { workOrders, vehicles, inventory, createWorkOrder, closeWorkOrder, setSelectedVehicleId } = useFleet();
+  const { currentRole } = useAuth();
   const { t } = useLocalization();
 
   const [statusFilter, setStatusFilter] = useState<string>('ALL');

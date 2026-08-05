@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useState, useMemo } from 'react';
 import { useLocalization } from '../../context/LocalizationContext';
-import { useFleet } from '../../context/FleetContext';
+import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { AuthModal } from '../common/AuthModal';
 import { LanguageSelector } from '../localization/LanguageSelector';
@@ -72,7 +72,7 @@ interface Scenario {
 
 export const LandingPage: React.FC = () => {
   const { currentLanguage, setLanguage, dir } = useLocalization();
-  const { currentRole, changeScreen, setIsRoleSelectorOpen, currentUser } = useFleet();
+  const { currentRole, changeScreen, setIsRoleSelectorOpen, currentUser } = useAuth();
 
   // Active scenario for dynamic KPI visualization
   const [activeScenarioId, setActiveScenarioId] = useState<string>('sahara');

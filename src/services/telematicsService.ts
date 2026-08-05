@@ -122,7 +122,91 @@ export class ManualEntryProvider implements TelematicsProvider {
 }
 
 // ==========================================
-// 2. TELTONIKA ADAPTER (HARDWARE STUB)
+// 2. NEXTTRANSIT PROPRIETARY IOT GATEWAY ADAPTER (PHASE 2 CAN-BUS STREAM)
+// ==========================================
+export class NextTransitIoTGatewayAdapter implements TelematicsProvider {
+  public readonly providerName: TelematicsProviderType = 'nexttransit_gateway';
+  public readonly isConnected: boolean = true;
+
+  private listeners: Map<
+    string,
+    Set<(data: { faultCodes?: ActiveFaultCode[]; position?: Position | null }) => void>
+  > = new Map();
+
+  private vehicleFaultsMap: Map<string, ActiveFaultCode[]> = new Map();
+  private intervalIds: Map<string, any> = new Map();
+
+  constructor(
+    public readonly externalDeviceId: string,
+    initialVehicles?: Vehicle[]
+  ) {
+    if (initialVehicles) {
+      initialVehicles.forEach((v) => {
+        this.vehicleFaultsMap.set(v.id, v.active_fault_codes || []);
+      });
+    }
+  }
+
+  public async getFaultCodes(vehicleId: string): Promise<ActiveFaultCode[]> {
+    return this.vehicleFaultsMap.get(vehicleId) || [];
+  }
+
+  public async getPosition(vehicleId: string): Promise<Position | null> {
+    // Simulated live GPS stream around Algiers Logistics & Industrial Corridor
+    const baseLat = 36.7538;
+    const baseLng = 3.0588;
+    const offset = (Date.now() % 10000) / 100000;
+
+    return {
+      latitude: baseLat + offset,
+      longitude: baseLng + offset * 0.8,
+      altitude_m: 35,
+      speed_kmh: Math.floor(65 + Math.random() * 25),
+      heading_deg: 120,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  public subscribe(
+    vehicleId: string,
+    onUpdate: (data: { faultCodes?: ActiveFaultCode[]; position?: Position | null }) => void
+  ): Unsubscribe {
+    if (!this.listeners.has(vehicleId)) {
+      this.listeners.set(vehicleId, new Set());
+    }
+    this.listeners.get(vehicleId)!.add(onUpdate);
+
+    // Simulate sub-second live MQTT/WebSocket CAN-Bus stream
+    if (!this.intervalIds.has(vehicleId)) {
+      const interval = setInterval(async () => {
+        const position = await this.getPosition(vehicleId);
+        const faultCodes = await this.getFaultCodes(vehicleId);
+        const set = this.listeners.get(vehicleId);
+        if (set) {
+          set.forEach((listener) => listener({ position, faultCodes }));
+        }
+      }, 3000);
+      this.intervalIds.set(vehicleId, interval);
+    }
+
+    return () => {
+      const set = this.listeners.get(vehicleId);
+      if (set) {
+        set.delete(onUpdate);
+        if (set.size === 0) {
+          this.listeners.delete(vehicleId);
+          if (this.intervalIds.has(vehicleId)) {
+            clearInterval(this.intervalIds.get(vehicleId));
+            this.intervalIds.delete(vehicleId);
+          }
+        }
+      }
+    };
+  }
+}
+
+// ==========================================
+// 3. TELTONIKA ADAPTER (HARDWARE STUB)
 // ==========================================
 export class TeltonikaAdapter implements TelematicsProvider {
   public readonly providerName: TelematicsProviderType = 'teltonika';
@@ -292,6 +376,10 @@ export function getProviderForVehicle(
 
   if (!mapping || mapping.provider === 'manual') {
     return new ManualEntryProvider(vehiclesList);
+  }
+
+  if (mapping.provider === 'nexttransit_gateway') {
+    return new NextTransitIoTGatewayAdapter(mapping.external_device_id, vehiclesList);
   }
 
   if (mapping.provider === 'teltonika') {

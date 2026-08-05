@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { CreditCard, CheckCircle2, ShieldCheck, AlertTriangle, RefreshCw, Zap, Building, Calendar } from 'lucide-react';
-import { useFleet } from '../../context/FleetContext';
+import { useAuth } from '../../context/AuthContext';
+import { useTenant } from '../../context/TenantContext';
 import { useLocalization } from '../../context/LocalizationContext';
 import { Subscription } from '../../types';
 import { getSubscriptionStatus, updateSubscriptionStatus } from '../../services/subscriptionService';
 
 export const BillingScreen: React.FC = () => {
-  const { userProfile, activeTenant } = useFleet();
+  const { userProfile } = useAuth();
+  const { activeTenant } = useTenant();
   const { t } = useLocalization();
 
   const [subscription, setSubscription] = useState<Subscription | null>(null);

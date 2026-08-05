@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useFleet } from '../../context/FleetContext';
+import { useAuth } from '../../context/AuthContext';
 import { useLocalization } from '../../context/LocalizationContext';
 import { VehicleStatus, WorkOrder, Warranty } from '../../types';
 import { warrantyService } from '../../services/warrantyService';
@@ -33,16 +34,8 @@ export const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({
   vehicleId,
   onClose,
 }) => {
-  const {
-    vehicles,
-    inventory,
-    workOrders,
-    costRecords,
-    currentRole,
-    changeScreen,
-    createWorkOrder,
-    closeWorkOrder,
-  } = useFleet();
+  const { vehicles, inventory, workOrders, costRecords, createWorkOrder, closeWorkOrder } = useFleet();
+  const { currentRole, changeScreen } = useAuth();
   const { t } = useLocalization();
 
 

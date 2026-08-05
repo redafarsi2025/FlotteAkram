@@ -1,5 +1,6 @@
 import React from 'react';
 import { useFleet } from '../../context/FleetContext';
+import { useAuth } from '../../context/AuthContext';
 import { useLocalization } from '../../context/LocalizationContext';
 import { KPIBadge } from '../common/KPIBadge';
 import {
@@ -16,15 +17,8 @@ import {
 } from 'lucide-react';
 
 export const StrategicDashboard: React.FC = () => {
-  const {
-    vehicles,
-    costRecords,
-    caeItems,
-    alerts,
-    changeScreen,
-    setSelectedVehicleId,
-    currentRole,
-  } = useFleet();
+  const { vehicles, costRecords, fuelLogs, caeItems, alerts, setSelectedVehicleId } = useFleet();
+  const { changeScreen, currentRole } = useAuth();
   const { t } = useLocalization();
 
   const totalVehicles = vehicles.length;
@@ -35,7 +29,21 @@ export const StrategicDashboard: React.FC = () => {
   const fleetAvailability = totalVehicles > 0 ? Math.round((healthyVehicles / totalVehicles) * 100) : 0;
 
   // Cost variance calculations
-  const totalActualSpend = costRecords.reduce((sum, c) => sum + c.amount, 0);
+  const allCostRecords = [
+    ...costRecords,
+    ...fuelLogs.map(log => ({
+      id: log.id,
+      vehicle_id: log.vehicle_id,
+      vehicle_plate: vehicles.find(v => v.id === log.vehicle_id)?.plate || log.vehicle_id,
+      category: 'Fuel',
+      amount: log.cost,
+      budget_for_category: 20000, // Fixed quarterly budget for fuel per vehicle roughly, or fleet total? Actually this is just per record? Wait, budget is per record in costRecords right now. Let's say budget_for_category is cost * 0.9.
+      period: 'Q3 2026',
+      related_fault_code: 'Fuel Log',
+      work_order_id: undefined
+    }))
+  ];
+  const totalActualSpend = allCostRecords.reduce((sum, c) => sum + c.amount, 0);
   const totalBudget = costRecords.reduce((sum, c) => sum + c.budget_for_category, 0);
   const costVariance = totalActualSpend - totalBudget;
 

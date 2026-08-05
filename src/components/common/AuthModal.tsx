@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useFleet } from '../../context/FleetContext';
+import { useAuth } from '../../context/AuthContext';
 import { useLocalization } from '../../context/LocalizationContext';
 import { LogIn, UserPlus, KeyRound, ShieldCheck, X, Building, CheckCircle2, AlertCircle, Mail, Lock, User as UserIcon } from 'lucide-react';
 import { registerPublicCompany, loginUser, logoutUser, requestPasswordReset } from '../../services/authService';
@@ -12,7 +12,7 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ onClose, initialTab = 'login', initialInviteToken = '' }) => {
-  const { userProfile, refreshUserSession } = useFleet();
+  const { userProfile, refreshUserSession } = useAuth();
   const { t } = useLocalization();
 
   const [tab, setTab] = useState<'login' | 'register' | 'invite' | 'forgot'>(initialTab);

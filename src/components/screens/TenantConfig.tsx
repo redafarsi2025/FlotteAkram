@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useFleet } from '../../context/FleetContext';
+import { useTenant } from '../../context/TenantContext';
 import { useLocalization } from '../../context/LocalizationContext';
 import { KPIBadge } from '../common/KPIBadge';
 import { TenantConfig as TenantConfigType } from '../../types';
@@ -76,16 +77,8 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export const TenantConfig: React.FC = () => {
-  const {
-    tenantConfigs,
-    activeTenantId,
-    activeTenant,
-    updateTenantConfig,
-    setActiveTenantId,
-    addTenantConfig,
-    costRecords,
-    vehicles,
-  } = useFleet();
+  const { costRecords, vehicles } = useFleet();
+  const { tenantConfigs, activeTenantId, activeTenant, updateTenantConfig, setActiveTenantId, addTenantConfig } = useTenant();
   const { t } = useLocalization();
 
   // Telematics Device Mappings State

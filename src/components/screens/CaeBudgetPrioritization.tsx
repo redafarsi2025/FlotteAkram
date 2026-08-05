@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useFleet } from '../../context/FleetContext';
+import { useAuth } from '../../context/AuthContext';
 import { useLocalization } from '../../context/LocalizationContext';
 import { recordAudit } from '../../services/auditService';
 import { KPIBadge } from '../common/KPIBadge';
@@ -17,15 +18,8 @@ import {
 } from 'lucide-react';
 
 export const CaeBudgetPrioritization: React.FC = () => {
-  const {
-    caeItems,
-    caeAvailableBudget,
-    setCaeAvailableBudget,
-    caeDelayMultipliers,
-    updateCaeDelayMultiplier,
-    createWorkOrder,
-    changeScreen,
-  } = useFleet();
+  const { caeItems, caeAvailableBudget, setCaeAvailableBudget, caeDelayMultipliers, updateCaeDelayMultiplier, createWorkOrder } = useFleet();
+  const { changeScreen } = useAuth();
   const { t } = useLocalization();
 
   const [isApprovedMessage, setIsApprovedMessage] = useState<boolean>(false);
